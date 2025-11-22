@@ -130,12 +130,11 @@ export default function Login() {
           <div className="bg-slate-900/80 backdrop-blur-lg rounded-2xl lg:flex overflow-hidden">
 
             <div className="hidden lg:block lg:w-1/2 overflow-hidden">
-              <div
-                className="w-full h-full bg-cover bg-center animate-pan
-                           bg-[url('./imgs/AIGenerated_ICPC_GEMINI.png')]"
-
-              >
-              </div>
+              <img
+                src="./imgs/AIGenerated_ICPC_GEMINI.png"
+                alt="Aswan ICPC Logo"
+                className="w-full h-full bg-cover bg-center animate-pan"
+              />
             </div>
 
             <div className="w-full lg:w-1/2 p-8">
