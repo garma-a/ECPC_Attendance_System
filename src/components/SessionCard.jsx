@@ -43,7 +43,7 @@ export default function SessionCard({
             {new Date(session.date).toLocaleString()}
           </p>
           <p className="text-xs text-cyan-400 font-medium">
-            Attendance: {session._count.attendances}
+            {session.creator?.name || ''}
           </p>
         </div>
 

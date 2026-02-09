@@ -81,7 +81,8 @@ class ApiService {
       .from('Session')
       .insert([{
         ...sessionData,
-        createdBy: user.id
+        createdBy: user.id,
+        updatedAt: new Date().toISOString()
       }])
       .select()
       .single();
@@ -111,6 +112,28 @@ class ApiService {
 
     if (error) throw error;
     return data;
+  }
+
+  async generateSessionQR(sessionId) {
+    // Generate a random token
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes
+
+    // Delete any existing token for this session
+    await supabase
+      .from('QRToken')
+      .delete()
+      .eq('sessionId', sessionId);
+
+    // Insert new token
+    const { data, error } = await supabase
+      .from('QRToken')
+      .insert({ token, sessionId, expiresAt })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { token: data.token, expiresAt: data.expiresAt };
   }
 
   async getSessionAttendance(sessionId, format = "json") {
@@ -159,13 +182,118 @@ class ApiService {
         latitude,
         longitude,
         scannedAt: new Date()
-      });
+      })
+      .select('id, scannedAt, session:Session(name, courseName)')
+      .single();
 
     if (error) {
       if (error.code === '23505') throw new Error("You have already scanned this QR.");
       throw error;
     }
-    return data;
+
+    return {
+      message: "Attendance recorded successfully!",
+      messageAr: "تم تسجيل الحضور بنجاح!",
+      attendance: {
+        id: data.id,
+        sessionName: data.session?.name || 'Unknown',
+        courseName: data.session?.courseName || 'Unknown',
+        scannedAt: data.scannedAt,
+      }
+    };
+  }
+
+  // --- Student: Stats ---
+
+  async getUserStats(userId) {
+    // 1. Get user profile
+    const { data: userProfile, error: userError } = await supabase
+      .from('User')
+      .select('name, groupName')
+      .eq('id', userId)
+      .single();
+
+    if (userError) throw userError;
+
+    // 2. Get total sessions count
+    const { count: totalSessions, error: sessionsError } = await supabase
+      .from('Session')
+      .select('*', { count: 'exact', head: true });
+
+    if (sessionsError) throw sessionsError;
+
+    // 3. Get user's attendances with session info
+    const { data: attendances, error: attError } = await supabase
+      .from('Attendance')
+      .select('id, scannedAt, session:Session(name, courseName, date)')
+      .eq('userId', userId)
+      .order('scannedAt', { ascending: false });
+
+    if (attError) throw attError;
+
+    const attendanceCount = attendances?.length || 0;
+    const absenceCount = (totalSessions || 0) - attendanceCount;
+    const attendanceRate = totalSessions > 0
+      ? Math.round((attendanceCount / totalSessions) * 100)
+      : 0;
+
+    // 4. Build weekly breakdown (last 8 weeks)
+    const weeklyBreakdown = this._buildWeeklyBreakdown(attendances || [], totalSessions || 0);
+
+    // 5. Build recent attendances list
+    const recentAttendances = (attendances || []).slice(0, 10).map(att => ({
+      id: att.id,
+      sessionName: att.session?.name || 'Unknown',
+      courseName: att.session?.courseName || 'Unknown',
+      scannedAt: att.scannedAt,
+    }));
+
+    return {
+      user: userProfile,
+      stats: {
+        totalSessions: totalSessions || 0,
+        attendanceCount,
+        absenceCount: Math.max(0, absenceCount),
+        attendanceRate,
+      },
+      weeklyBreakdown,
+      recentAttendances,
+    };
+  }
+
+  _buildWeeklyBreakdown(attendances, totalSessions) {
+    // Group attendances by ISO week
+    const weekMap = {};
+    const now = new Date();
+
+    // Create entries for the last 8 weeks
+    for (let i = 7; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i * 7);
+      const weekLabel = this._getWeekLabel(d);
+      weekMap[weekLabel] = { week: weekLabel, attended: 0, absent: 0 };
+    }
+
+    // Count attendances per week
+    for (const att of attendances) {
+      const weekLabel = this._getWeekLabel(new Date(att.scannedAt));
+      if (weekMap[weekLabel]) {
+        weekMap[weekLabel].attended++;
+      }
+    }
+
+    return Object.values(weekMap);
+  }
+
+  _getWeekLabel(date) {
+    const month = date.toLocaleString('en-US', { month: 'short' });
+    const day = date.getDate();
+    // Get Monday of that week
+    const dayOfWeek = date.getDay();
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(date);
+    monday.setDate(date.getDate() + mondayOffset);
+    return `${monday.toLocaleString('en-US', { month: 'short' })} ${monday.getDate()}`;
   }
 
   // --- Admin: User Management ---
@@ -215,9 +343,14 @@ class ApiService {
     // Admin manually adding attendance
     const { data, error } = await supabase
       .from('Attendance')
-      .insert({ userId, sessionId });
+      .insert({ userId, sessionId, scannedAt: new Date() })
+      .select()
+      .single();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === '23505') throw new Error("Attendance already recorded for this user and session.");
+      throw error;
+    }
     return data;
   }
 

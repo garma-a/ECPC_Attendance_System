@@ -4,6 +4,7 @@ import { useLanguage } from "../context/LanguageContext";
 import api from "../services/api";
 import Layout from "../components/Layout";
 import SessionCard from "../components/SessionCard";
+import { QRCodeSVG } from "qrcode.react";
 
 export default function InstructorDashboard() {
   const { user } = useAuth();
@@ -12,6 +13,7 @@ export default function InstructorDashboard() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [qrData, setQrData] = useState(null);
   const [attendances, setAttendances] = useState([]);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -20,6 +22,7 @@ export default function InstructorDashboard() {
   });
 
   const qrIntervalRef = useRef(null);
+  const attendanceIntervalRef = useRef(null);
 
   function handleSessionDeleted(deletedSessionId) {
     // Filter the deleted session out of the local state
@@ -36,13 +39,45 @@ export default function InstructorDashboard() {
       if (qrIntervalRef.current) {
         clearInterval(qrIntervalRef.current);
       }
+      if (attendanceIntervalRef.current) {
+        clearInterval(attendanceIntervalRef.current);
+      }
     };
   }, []);
+
+  // Countdown timer for QR expiry
+  useEffect(() => {
+    if (!selectedSession || !qrData) return;
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) return 0;
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [selectedSession, qrData]);
+
+  // Live attendance polling — re-runs whenever selectedSession changes
+  useEffect(() => {
+    if (!selectedSession) return;
+    // Initial load
+    loadAttendance(selectedSession);
+    // Poll every 5 seconds
+    attendanceIntervalRef.current = setInterval(() => {
+      loadAttendance(selectedSession);
+    }, 5000);
+    return () => {
+      if (attendanceIntervalRef.current) {
+        clearInterval(attendanceIntervalRef.current);
+        attendanceIntervalRef.current = null;
+      }
+    };
+  }, [selectedSession]);
 
   const loadSessions = async () => {
     try {
       const data = await api.getSessions();
-      setSessions(data.sessions);
+      setSessions(data || []);
     } catch (error) {
       console.error("Failed to load sessions:", error);
     }
@@ -74,24 +109,15 @@ export default function InstructorDashboard() {
     qrIntervalRef.current = setInterval(() => {
       generateQR(sessionId);
     }, 4 * 60 * 1000);
-
-    // Load attendance
-    loadAttendance(sessionId);
-
-    // Refresh attendance every 5 seconds
-    const attendanceInterval = setInterval(() => {
-      if (selectedSession === sessionId) {
-        loadAttendance(sessionId);
-      }
-    }, 5000);
-
-    return () => clearInterval(attendanceInterval);
   };
 
   const generateQR = async (sessionId) => {
     try {
-      const data = await api.getSessionQR(sessionId);
+      const data = await api.generateSessionQR(sessionId);
       setQrData(data);
+      // Calculate initial time left in seconds
+      const remaining = Math.max(0, Math.floor((new Date(data.expiresAt) - Date.now()) / 1000));
+      setTimeLeft(remaining);
     } catch (error) {
       console.error("Failed to generate QR:", error);
     }
@@ -100,7 +126,7 @@ export default function InstructorDashboard() {
   const loadAttendance = async (sessionId) => {
     try {
       const data = await api.getSessionAttendance(sessionId);
-      setAttendances(data.attendances);
+      setAttendances(data || []);
     } catch (error) {
       console.error("Failed to load attendance:", error);
     }
@@ -110,6 +136,10 @@ export default function InstructorDashboard() {
     if (qrIntervalRef.current) {
       clearInterval(qrIntervalRef.current);
       qrIntervalRef.current = null;
+    }
+    if (attendanceIntervalRef.current) {
+      clearInterval(attendanceIntervalRef.current);
+      attendanceIntervalRef.current = null;
     }
     setSelectedSession(null);
     setQrData(null);
@@ -216,13 +246,16 @@ export default function InstructorDashboard() {
               </button>
             </div>
             <div className="flex flex-col items-center">
-              <img
-                src={qrData.qrCode}
-                alt="QR Code"
-                class="w-44 h-44 sm:w-96 sm:h-96 border-4 border-cyan-500 rounded-lg shadow-lg shadow-cyan-500/30 transition-all duration-300"
-              />
+              <div className="w-44 h-44 sm:w-96 sm:h-96 border-4 border-cyan-500 rounded-lg shadow-lg shadow-cyan-500/30 transition-all duration-300 flex items-center justify-center bg-white p-4">
+                <QRCodeSVG
+                  value={qrData.token}
+                  size={320}
+                  level="H"
+                  className="w-full h-full"
+                />
+              </div>
               <p className="mt-4 text-sm text-slate-300">
-                Expires in: {qrData.expiresIn} seconds
+                Expires in: {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
               </p>
               <p className="text-xs text-slate-500 mt-2">
                 Auto-refreshes every 4 minutes
@@ -272,13 +305,13 @@ export default function InstructorDashboard() {
                   {attendances.map((att) => (
                     <tr key={att.id} className="hover:bg-slate-700 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200">
-                        {att.user.name}
+                        {att.user?.name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                        {att.user.username}
+                        {att.user?.username}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                        {att.user.groupName || "N/A"}
+                        {att.user?.groupName || "N/A"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
                         {new Date(att.scannedAt).toLocaleTimeString()}
