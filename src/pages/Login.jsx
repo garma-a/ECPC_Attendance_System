@@ -22,7 +22,9 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(username, password);
+      const emailToUse = username.includes('@') ? username : `${username}@system.local`;
+
+      await login(emailToUse, password);
       navigate("/");
     } catch (err) {
       setError(err.message || "Login failed");
@@ -245,17 +247,6 @@ export default function Login() {
                   {loading ? t('loading') : t('login')}
                 </button>
               </form>
-
-              <div className="mt-8 p-4 bg-slate-800/50 border-l-4 border-cyan-500 rounded-r-lg text-sm animate-fade-in-up animation-delay-400">
-                <p className="font-semibold mb-2 text-cyan-400">
-                  Demo Accounts:
-                </p>
-                <p className="text-slate-300">
-                  Instructor: instructor1 / password123
-                </p>
-                <p className="text-slate-300">Student: student1 / password123</p>
-                <p className="text-slate-300">Admin: admin1 / password123</p>
-              </div>
 
             </div>
           </div>

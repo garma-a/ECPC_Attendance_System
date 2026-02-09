@@ -31,14 +31,14 @@ export default function AdminPanel() {
     try {
       if (selectedTab === "users") {
         const data = await api.getUsers();
-        setUsers(data.users);
+        setUsers(data || []);
       } else if (selectedTab === "attendance") {
-        const data = await api.getAllAttendance(pagination.page);
-        setAttendances(data.attendances);
-        setPagination(data.pagination);
+        // Fetch all attendance records with user and session details
+        const data = await api.getAllAttendance();
+        setAttendances(data || []);
       } else if (selectedTab === "sessions") {
         const data = await api.getSessions();
-        setSessions(data.sessions);
+        setSessions(data || []);
       }
     } catch (error) {
       console.error("Failed to load data:", error);
@@ -172,9 +172,6 @@ export default function AdminPanel() {
                     {t("group")}
                   </th>
                   <th className="px-6 py-3 text-start text-xs font-medium text-cyan-400 uppercase tracking-wider">
-                    Attendances
-                  </th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-cyan-400 uppercase tracking-wider">
                     Delete
                   </th>
                 </tr>
@@ -205,9 +202,6 @@ export default function AdminPanel() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
                       {user.groupName || "N/A"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {user._count.attendances}
                     </td>
 
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
@@ -254,10 +248,10 @@ export default function AdminPanel() {
                         {att.id}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200">
-                        {att.user.name} ({att.user.username})
+                        {att.user?.name || "N/A"} ({att.user?.username || "N/A"})
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-200">
-                        {att.session.name}
+                        {att.session?.name || "N/A"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
                         {new Date(att.scannedAt).toLocaleString()}
@@ -324,9 +318,6 @@ export default function AdminPanel() {
                   <th className="px-6 py-3 text-start text-xs font-medium text-cyan-400 uppercase tracking-wider">
                     Instructor
                   </th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-cyan-400 uppercase tracking-wider">
-                    Attendances
-                  </th>
                 </tr>
               </thead>
               <tbody className="bg-slate-800 divide-y divide-slate-700">
@@ -345,10 +336,7 @@ export default function AdminPanel() {
                       {new Date(session.date).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {session.creator.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {session._count.attendances}
+                      {session.creator?.name || "N/A"}
                     </td>
                   </tr>
                 ))}
