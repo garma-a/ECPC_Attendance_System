@@ -82,6 +82,7 @@ class ApiService {
       .insert([{
         ...sessionData,
         createdBy: user.id,
+        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }])
       .select()
@@ -128,11 +129,18 @@ class ApiService {
     // Insert new token
     const { data, error } = await supabase
       .from('QRToken')
-      .insert({ token, sessionId, expiresAt })
+      .insert({
+        token,
+        sessionId,
+        expiresAt,
+        createdAt: new Date().toISOString()
+      })
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      throw error
+    };
     return { token: data.token, expiresAt: data.expiresAt };
   }
 
@@ -181,7 +189,8 @@ class ApiService {
         sessionId: qrData.sessionId,
         latitude,
         longitude,
-        scannedAt: new Date()
+        scannedAt: new Date(),
+        createdAt: new Date().toISOString()
       })
       .select('id, scannedAt, session:Session(name, courseName)')
       .single();
@@ -341,7 +350,12 @@ class ApiService {
     // Admin manually adding attendance
     const { data, error } = await supabase
       .from('Attendance')
-      .insert({ userId, sessionId, scannedAt: new Date() })
+      .insert({
+        userId,
+        sessionId,
+        scannedAt: new Date(),
+        createdAt: new Date().toISOString()
+      })
       .select()
       .single();
 

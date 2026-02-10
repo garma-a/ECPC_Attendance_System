@@ -48,6 +48,7 @@ serve(async (req) => {
       name: name,
       role: role,
       groupName: groupName || null,
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     })
 
