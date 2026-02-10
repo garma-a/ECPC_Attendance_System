@@ -319,15 +319,13 @@ class ApiService {
   }
 
   async deleteUser(userId) {
-    // Note: This only deletes from the Public table. 
-    // To delete from Auth, you need another Edge Function (similar to create-user).
-    // For now, this effectively "bans" them from the app.
-    const { error } = await supabase
-      .from('User')
-      .delete()
-      .eq('id', userId);
+    // Calls the 'delete-user' Edge Function to remove from Auth and Public table
+    const { data, error } = await supabase.functions.invoke('delete-user', {
+      body: { userId }
+    });
 
-    if (error) throw error;
+    if (error) throw new Error(error.message);
+    if (data && data.error) throw new Error(data.error);
   }
 
   async deleteAttendance(attendanceId) {
