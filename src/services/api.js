@@ -117,7 +117,7 @@ class ApiService {
   async generateSessionQR(sessionId) {
     // Generate a random token
     const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 180 * 60 * 1000).toISOString(); // 5 minutes
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes
 
     // Delete any existing token for this session
     await supabase
