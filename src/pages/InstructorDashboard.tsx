@@ -1,19 +1,21 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import api from "../services/api";
 import Layout from "../components/Layout";
 import SessionCard from "../components/SessionCard";
 import { QRCodeSVG } from "qrcode.react";
+import { Session, Attendance, QRToken } from "../types";
 
 export default function InstructorDashboard() {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const [sessions, setSessions] = useState([]);
-  const [selectedSession, setSelectedSession] = useState(null);
-  const [qrData, setQrData] = useState(null);
-  const [attendances, setAttendances] = useState([]);
-  const [timeLeft, setTimeLeft] = useState(0);
+  const queryClient = useQueryClient();
+
+  const [selectedSession, setSelectedSession] = useState<string | null>(null);
+  const [qrData, setQrData] = useState<{ token: string; expiresAt: string } | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -21,26 +23,45 @@ export default function InstructorDashboard() {
     date: new Date().toISOString().slice(0, 16),
   });
 
-  const qrIntervalRef = useRef(null);
-  const attendanceIntervalRef = useRef(null);
+  const qrIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  function handleSessionDeleted(deletedSessionId) {
-    // Filter the deleted session out of the local state
-    setSessions(prevSessions =>
-      prevSessions.filter(session => session.id !== deletedSessionId)
-    );
+  const { data: sessions = [] } = useQuery<Session[]>({
+    queryKey: ['sessions'],
+    queryFn: () => api.getSessions(),
+  });
+
+  const { data: attendances = [] } = useQuery<Attendance[]>({
+    queryKey: ['attendance', selectedSession],
+    queryFn: () => api.getSessionAttendance(selectedSession!) as Promise<Attendance[]>,
+    enabled: !!selectedSession,
+    refetchInterval: 5000,
+  });
+
+  const createSessionMutation = useMutation({
+    mutationFn: (data: Partial<Session>) => api.createSession(data),
+    onSuccess: () => {
+      setShowCreateForm(false);
+      setFormData({
+        name: "",
+        courseName: "",
+        date: new Date().toISOString().slice(0, 16),
+      });
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+    },
+    onError: (error: any) => {
+      alert("Failed to create session: " + error.message);
+    }
+  });
+
+  function handleSessionDeleted(deletedSessionId: string) {
+    // Invalidate sessions list query
+    queryClient.invalidateQueries({ queryKey: ['sessions'] });
   }
-  useEffect(() => {
-    loadSessions();
-  }, []);
 
   useEffect(() => {
     return () => {
       if (qrIntervalRef.current) {
         clearInterval(qrIntervalRef.current);
-      }
-      if (attendanceIntervalRef.current) {
-        clearInterval(attendanceIntervalRef.current);
       }
     };
   }, []);
@@ -57,49 +78,12 @@ export default function InstructorDashboard() {
     return () => clearInterval(timer);
   }, [selectedSession, qrData]);
 
-  // Live attendance polling — re-runs whenever selectedSession changes
-  useEffect(() => {
-    if (!selectedSession) return;
-    // Initial load
-    loadAttendance(selectedSession);
-    // Poll every 5 seconds
-    attendanceIntervalRef.current = setInterval(() => {
-      loadAttendance(selectedSession);
-    }, 5000);
-    return () => {
-      if (attendanceIntervalRef.current) {
-        clearInterval(attendanceIntervalRef.current);
-        attendanceIntervalRef.current = null;
-      }
-    };
-  }, [selectedSession]);
-
-  const loadSessions = async () => {
-    try {
-      const data = await api.getSessions();
-      setSessions(data || []);
-    } catch (error) {
-      console.error("Failed to load sessions:", error);
-    }
-  };
-
-  const handleCreateSession = async (e) => {
+  const handleCreateSession = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await api.createSession(formData);
-      setShowCreateForm(false);
-      setFormData({
-        name: "",
-        courseName: "",
-        date: new Date().toISOString().slice(0, 16),
-      });
-      loadSessions();
-    } catch (error) {
-      alert("Failed to create session: " + error.message);
-    }
+    createSessionMutation.mutate(formData);
   };
 
-  const startQRRotation = async (sessionId) => {
+  const startQRRotation = async (sessionId: string) => {
     setSelectedSession(sessionId);
 
     // Initial QR generation
@@ -111,24 +95,15 @@ export default function InstructorDashboard() {
     }, 4 * 60 * 1000);
   };
 
-  const generateQR = async (sessionId) => {
+  const generateQR = async (sessionId: string) => {
     try {
       const data = await api.generateSessionQR(sessionId);
       setQrData(data);
       // Calculate initial time left in seconds
-      const remaining = Math.max(0, Math.floor((new Date(data.expiresAt) - Date.now()) / 1000));
+      const remaining = Math.max(0, Math.floor((new Date(data.expiresAt).getTime() - Date.now()) / 1000));
       setTimeLeft(remaining);
     } catch (error) {
       console.error("Failed to generate QR:", error);
-    }
-  };
-
-  const loadAttendance = async (sessionId) => {
-    try {
-      const data = await api.getSessionAttendance(sessionId);
-      setAttendances(data || []);
-    } catch (error) {
-      console.error("Failed to load attendance:", error);
     }
   };
 
@@ -137,16 +112,11 @@ export default function InstructorDashboard() {
       clearInterval(qrIntervalRef.current);
       qrIntervalRef.current = null;
     }
-    if (attendanceIntervalRef.current) {
-      clearInterval(attendanceIntervalRef.current);
-      attendanceIntervalRef.current = null;
-    }
     setSelectedSession(null);
     setQrData(null);
-    setAttendances([]);
   };
 
-  const exportCSV = (sessionId) => {
+  const exportCSV = (sessionId: string) => {
     api.getSessionAttendance(sessionId, "csv");
   };
 

@@ -1,8 +1,16 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-const LanguageContext = createContext(null);
+type LanguageContextType = {
+  language: string;
+  t: (key: string) => string;
+  toggleLanguage: () => void;
+};
 
-const translations = {
+const LanguageContext = createContext<LanguageContextType | null>(null);
+
+type TranslationsMap = Record<string, Record<string, string>>;
+
+const translations: TranslationsMap = {
   en: {
     // Common
     login: "Login",
@@ -142,7 +150,7 @@ const translations = {
   },
 };
 
-export function LanguageProvider({ children }) {
+export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState(() => {
     return localStorage.getItem("language") || "ar";
   });
@@ -155,11 +163,11 @@ export function LanguageProvider({ children }) {
     );
   }, [language]);
 
-  const t = (key) => {
-    return translations[language][key] || key;
+  const t = (key: string): string => {
+    return translations[language]?.[key] || key;
   };
 
-  const toggleLanguage = () => {
+  const toggleLanguage = (): void => {
     setLanguage((prev) => (prev === "ar" ? "en" : "ar"));
   };
 
@@ -170,7 +178,7 @@ export function LanguageProvider({ children }) {
   );
 }
 
-export function useLanguage() {
+export function useLanguage(): LanguageContextType {
   const context = useContext(LanguageContext);
   if (!context) {
     throw new Error("useLanguage must be used within LanguageProvider");

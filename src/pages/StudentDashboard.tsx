@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import api from "../services/api";
@@ -17,25 +17,14 @@ import {
 export default function StudentDashboard() {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadStats();
-  }, []);
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['stats', user?.id],
+    queryFn: () => api.getUserStats(user!.id),
+    enabled: !!user?.id,
+  });
 
-  const loadStats = async () => {
-    try {
-      const data = await api.getUserStats(user.id);
-      setStats(data);
-    } catch (error) {
-      console.error("Failed to load stats:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Layout>
         <div className="text-center py-12">{t("loading")}</div>

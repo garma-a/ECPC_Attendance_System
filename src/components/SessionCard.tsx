@@ -1,4 +1,13 @@
 import api from "../services/api";
+import { Session } from "../types";
+
+interface SessionCardProps {
+  session: Session;
+  selectedSession: string | null;
+  startQRRotation: (id: string) => void;
+  t: (key: string) => string;
+  onSessionDeleted: (id: string) => void;
+}
 
 export default function SessionCard({
   session,
@@ -6,9 +15,9 @@ export default function SessionCard({
   startQRRotation,
   t,
   onSessionDeleted
-}) {
+}: SessionCardProps) {
 
-  async function deleteSession(sessionId) {
+  async function deleteSession(sessionId: string) {
     // (Optional) Add a confirmation
     if (!window.confirm("Are you sure you want to delete this session?")) {
       return;

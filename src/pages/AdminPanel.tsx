@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "../context/LanguageContext";
 import api from "../services/api";
 import Layout from "../components/Layout";
+import { User, Attendance, Session } from "../types";
 
 export default function AdminPanel() {
   const { t } = useLanguage();
-  const [users, setUsers] = useState([]);
-  const [attendances, setAttendances] = useState([]);
-  const [sessions, setSessions] = useState([]);
+  const queryClient = useQueryClient();
+
   const [selectedTab, setSelectedTab] = useState("users");
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
 
@@ -20,86 +21,84 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(false);
   // -------------------------------------
 
-  useEffect(() => {
-    // Don't reload data if the tab is 'addUser'
-    if (selectedTab !== "addUser") {
-      loadData();
-    }
-  }, [selectedTab, pagination.page]);
+  const { data: users = [], isLoading: loadingUsers } = useQuery<User[]>({
+    queryKey: ['users'],
+    queryFn: () => api.getUsers(),
+    enabled: selectedTab === 'users',
+  });
 
-  const loadData = async () => {
-    try {
-      if (selectedTab === "users") {
-        const data = await api.getUsers();
-        setUsers(data || []);
-      } else if (selectedTab === "attendance") {
-        // Fetch all attendance records with user and session details
-        const data = await api.getAllAttendance();
-        setAttendances(data || []);
-      } else if (selectedTab === "sessions") {
-        const data = await api.getSessions();
-        setSessions(data || []);
-      }
-    } catch (error) {
-      console.error("Failed to load data:", error);
-    }
-  };
+  const { data: attendances = [], isLoading: loadingAttendances } = useQuery<Attendance[]>({
+    queryKey: ['allAttendance'],
+    queryFn: () => api.getAllAttendance(),
+    enabled: selectedTab === 'attendance',
+  });
 
-  const handleDeleteAttendance = async (id) => {
-    if (!confirm("Are you sure you want to delete this attendance record?")) {
-      return;
-    }
+  const { data: sessions = [], isLoading: loadingSessions } = useQuery<Session[]>({
+    queryKey: ['sessions'],
+    queryFn: () => api.getSessions(),
+    enabled: selectedTab === 'sessions',
+  });
 
-    try {
-      await api.deleteAttendance(id);
-      loadData(); // Reload current tab data
-    } catch (error) {
+  const deleteAttendanceMutation = useMutation({
+    mutationFn: (id: string) => api.deleteAttendance(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allAttendance'] });
+    },
+    onError: (error: any) => {
       alert("Failed to delete: " + error.message);
     }
-  };
+  });
 
-  const handleDeleteUser = async (id) => {
-    if (!confirm("Are you sure you want to delete this user?")) {
-      return;
-    }
-
-    try {
-      await api.deleteUser(id);
-      loadData(); // Reload current tab data
-    } catch (error) {
+  const deleteUserMutation = useMutation({
+    mutationFn: (id: string) => api.deleteUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: any) => {
       alert("Failed to delete: " + error.message);
     }
-  };
+  });
 
-  // --- New Handler for Creating User ---
-  const handleCreateUser = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    const userData = {
-      name: newName,
-      username: newUsername,
-      password: newPassword,
-      groupName: newGroupName,
-      role: newRole,
-    };
-
-    try {
-      await api.createUser(userData); // Assuming you have this function in your api service
+  const createUserMutation = useMutation({
+    mutationFn: (userData: Partial<User>) => api.createUser(userData),
+    onSuccess: () => {
       alert("User created successfully!");
-      // Reset form
       setNewName("");
       setNewUsername("");
       setNewPassword("");
       setNewGroupName("");
       setNewRole("student");
-      // Switch to users tab to see the new user
       setSelectedTab("users");
-    } catch (error) {
-      alert("Failed to create user: " + (error.response?.data?.message || error.message));
-    } finally {
-      setLoading(false);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: any) => {
+      alert("Failed to create user: " + (error?.response?.data?.message || error.message));
     }
+  });
+
+  const handleDeleteAttendance = (id: string) => {
+    if (confirm("Are you sure you want to delete this attendance record?")) {
+      deleteAttendanceMutation.mutate(id);
+    }
+  };
+
+  const handleDeleteUser = (id: string) => {
+    if (confirm("Are you sure you want to delete this user?")) {
+      deleteUserMutation.mutate(id);
+    }
+  };
+
+  // --- New Handler for Creating User ---
+  const handleCreateUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    const userData = {
+      name: newName,
+      username: newUsername,
+      password: newPassword,
+      groupName: newGroupName,
+      role: newRole as 'student' | 'instructor' | 'admin',
+    };
+    createUserMutation.mutate(userData);
   };
   // ---------------------------------------
 
@@ -505,7 +504,7 @@ export default function AdminPanel() {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={createUserMutation.isPending}
                   className="relative w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold 
                      rounded-lg shadow-lg hover:shadow-cyan-500/50 
                      hover:scale-105 active:scale-95 
@@ -513,7 +512,7 @@ export default function AdminPanel() {
                      disabled:opacity-70 disabled:cursor-not-allowed disabled:scale-100
                      flex items-center justify-center gap-2"
                 >
-                  {loading && (
+                  {createUserMutation.isPending && (
                     <svg
                       className="animate-spin h-5 w-5 text-white"
                       xmlns="http://www.w3.org/2000/svg"
@@ -535,7 +534,7 @@ export default function AdminPanel() {
                       ></path>
                     </svg>
                   )}
-                  {loading ? t('loading') : t('createUser')}
+                  {createUserMutation.isPending ? t('loading') : t('createUser')}
                 </button>
               </form>
             </div>

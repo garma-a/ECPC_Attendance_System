@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Html5Qrcode } from "html5-qrcode";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -8,11 +9,29 @@ import Layout from "../components/Layout";
 export default function ScanQR() {
   const { user } = useAuth();
   const { t, language } = useLanguage();
-  const [scanning, setScanning] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
-  const scannerRef = useRef(null);
-  const html5QrCodeRef = useRef(null);
+  const [scanning, setScanning] = useState<boolean>(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string>("");
+  const scannerRef = useRef<HTMLDivElement | null>(null);
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+
+  const recordAttendanceMutation = useMutation({
+    mutationFn: ({ token, latitude, longitude }: { token: string, latitude: number | null, longitude: number | null }) => 
+      api.recordAttendance(token, latitude, longitude),
+    onSuccess: (response: any) => {
+      setResult({
+        success: true,
+        message: language === "ar" ? response.messageAr || response.message : response.message,
+        attendance: response.attendance,
+      });
+    },
+    onError: (err: any) => {
+      setResult({
+        success: false,
+        message: err.message,
+      });
+    }
+  });
 
   useEffect(() => {
     return () => {
@@ -56,7 +75,7 @@ export default function ScanQR() {
     setScanning(false);
   };
 
-  const onScanSuccess = async (decodedText, decodedResult) => {
+  const onScanSuccess = async (decodedText: string, decodedResult: any) => {
     console.log("QR Code scanned:", decodedText);
 
     // Stop scanning immediately
@@ -86,15 +105,10 @@ export default function ScanQR() {
         }
       }
 
-      // Record attendance
-      const response = await api.recordAttendance(token, latitude, longitude);
+      // Record attendance using mutation
+      recordAttendanceMutation.mutate({ token, latitude, longitude });
 
-      setResult({
-        success: true,
-        message: language === "ar" ? response.messageAr : response.message,
-        attendance: response.attendance,
-      });
-    } catch (err) {
+    } catch (err: any) {
       setResult({
         success: false,
         message: err.message,
@@ -102,7 +116,7 @@ export default function ScanQR() {
     }
   };
 
-  const onScanError = (errorMessage) => {
+  const onScanError = (errorMessage: string) => {
     // Ignore common scanning errors
   };
 

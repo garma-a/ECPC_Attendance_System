@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import LanguageToggle from "../components/LanguageToggle";
@@ -9,28 +10,29 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const { t } = useLanguage();
   const [loadedA, setLoadedA] = useState(false)
   const [loadedB, setLoadedB] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const loginMutation = useMutation({
+    mutationFn: async () => {
+      const emailToUse = username.includes('@') ? username : `${username}@system.local`;
+      return login(emailToUse, password);
+    },
+    onSuccess: () => {
+      navigate("/");
+    },
+    onError: (err: any) => {
+      setError(err.message || "Login failed");
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
-
-    try {
-      const emailToUse = username.includes('@') ? username : `${username}@system.local`;
-
-      await login(emailToUse, password);
-      navigate("/");
-    } catch (err) {
-      setError(err.message || "Login failed");
-    } finally {
-      setLoading(false);
-    }
+    loginMutation.mutate();
   };
   // Add this component inside your Login.js file, above the `return`
 
@@ -214,7 +216,7 @@ export default function Login() {
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loginMutation.isPending}
                   className="relative w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold 
                              rounded-lg shadow-lg hover:shadow-cyan-500/50 
                              hover:scale-105 active:scale-95 
@@ -222,7 +224,7 @@ export default function Login() {
                              disabled:opacity-70 disabled:cursor-not-allowed disabled:scale-100
                              flex items-center justify-center gap-2"
                 >
-                  {loading && (
+                  {loginMutation.isPending && (
                     <svg
                       className="animate-spin h-5 w-5 text-white"
                       xmlns="http://www.w3.org/2000/svg"
@@ -244,7 +246,7 @@ export default function Login() {
                       ></path>
                     </svg>
                   )}
-                  {loading ? t('loading') : t('login')}
+                  {loginMutation.isPending ? t('loading') : t('login')}
                 </button>
               </form>
 

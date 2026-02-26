@@ -1,22 +1,23 @@
 import { supabase } from '../supabaseClient';
+import { User, Session, Attendance, QRToken, UserStats, WeeklyBreakdown, RecentAttendance } from '../types';
 
 class ApiService {
 
   // --- Auth ---
 
-  async login(username, password) {
+  async login(username: string, password: string): Promise<any> {
     const email = username.includes('@') ? username : `${username}@system.local`;
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     return data;
   }
 
-  async logout() {
+  async logout(): Promise<void> {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   }
 
-  async getCurrentUser() {
+  async getCurrentUser(): Promise<User | null> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
@@ -28,12 +29,12 @@ class ApiService {
 
     if (error) throw error;
     // Merge Auth data (email) with Profile data (role, name)
-    return { ...user, ...profile };
+    return { ...user, ...profile } as User;
   }
 
   // --- Admin: Create User ---
 
-  async createUser(userData) {
+  async createUser(userData: Partial<User>): Promise<any> {
     const { data, error } = await supabase.functions.invoke('create-user', {
       body: userData
     });
@@ -45,17 +46,17 @@ class ApiService {
 
   // --- Sessions ---
 
-  async getSessions() {
+  async getSessions(): Promise<Session[]> {
     const { data, error } = await supabase
       .from('Session')
       .select('*, creator:User(name)')
       .order('date', { ascending: false });
 
     if (error) throw error;
-    return data;
+    return data as Session[];
   }
 
-  async getSession(id) {
+  async getSession(id: string): Promise<Session> {
     const { data, error } = await supabase
       .from('Session')
       .select('*, creator:User(name)')
@@ -63,10 +64,10 @@ class ApiService {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as Session;
   }
 
-  async createSession(sessionData) {
+  async createSession(sessionData: Partial<Session>): Promise<Session> {
     const { data: { user } } = await supabase.auth.getUser();
 
     const { data, error } = await supabase
@@ -81,10 +82,10 @@ class ApiService {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as Session;
   }
 
-  async deleteSession(id) {
+  async deleteSession(id: string): Promise<void> {
     const { error } = await supabase
       .from('Session')
       .delete()
@@ -95,7 +96,7 @@ class ApiService {
 
   // --- QR & Attendance ---
 
-  async getSessionQR(sessionId) {
+  async getSessionQR(sessionId: string): Promise<{ token: string; expiresAt: string } | null> {
     const { data, error } = await supabase
       .from('QRToken')
       .select('token, expiresAt')
@@ -106,7 +107,7 @@ class ApiService {
     return data;
   }
 
-  async generateSessionQR(sessionId) {
+  async generateSessionQR(sessionId: string): Promise<{ token: string; expiresAt: string }> {
     // FIX 1: Use a robust random ID generator
     const token = typeof crypto !== 'undefined' && crypto.randomUUID
       ? crypto.randomUUID()
@@ -133,7 +134,7 @@ class ApiService {
     return { token: data.token, expiresAt: data.expiresAt };
   }
 
-  async getSessionAttendance(sessionId, format = "json") {
+  async getSessionAttendance(sessionId: string, format = "json"): Promise<Attendance[] | void> {
     const { data, error } = await supabase
       .from('Attendance')
       .select('*, user:User(name, username, groupName)')
@@ -145,12 +146,12 @@ class ApiService {
       this._downloadCSV(data, `attendance-${sessionId}.csv`);
       return;
     }
-    return data;
+    return data as Attendance[];
   }
 
   // --- Student: Record Attendance ---
 
-  async recordAttendance(token, latitude = null, longitude = null) {
+  async recordAttendance(token: string, latitude: number | null = null, longitude: number | null = null): Promise<{ message: string, attendance: any }> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
 
@@ -196,7 +197,7 @@ class ApiService {
 
   // --- Student: Stats ---
 
-  async getUserStats(userId) {
+  async getUserStats(userId: string): Promise<UserStats> {
     // 1. User Profile
     const { data: userProfile, error: userError } = await supabase
       .from('User')
@@ -243,8 +244,8 @@ class ApiService {
   }
 
   // FIX 3 (Helper Logic): Now accurately counts "Absent" vs "Attended" per week
-  _buildWeeklyBreakdown(attendances, allSessions) {
-    const weekMap = {};
+  _buildWeeklyBreakdown(attendances: any[], allSessions: any[]): WeeklyBreakdown[] {
+    const weekMap: Record<string, WeeklyBreakdown> = {};
     const now = new Date();
 
     // Initialize last 8 weeks
@@ -278,7 +279,7 @@ class ApiService {
     return Object.values(weekMap);
   }
 
-  _getWeekLabel(date) {
+  _getWeekLabel(date: Date): string {
     const month = date.toLocaleString('en-US', { month: 'short' });
     const day = date.getDate();
     const dayOfWeek = date.getDay();
@@ -290,17 +291,26 @@ class ApiService {
 
   // --- Admin: User Management ---
 
-  async getUsers() {
+  async getUsers(): Promise<User[]> {
     const { data, error } = await supabase
       .from('User')
       .select('*')
       .order('name');
     if (error) throw error;
-    return data;
+    return data as User[];
+  }
+
+  async getAllAttendance(): Promise<Attendance[]> {
+    const { data, error } = await supabase
+      .from('Attendance')
+      .select('*, user:User(name, username, groupName), session:Session(name, courseName)')
+      .order('scannedAt', { ascending: false });
+    if (error) throw error;
+    return data as Attendance[];
   }
 
   // NOTE: This function WILL FAIL until you create the 'delete-user' Edge Function
-  async deleteUser(userId) {
+  async deleteUser(userId: string): Promise<void> {
     // Fallback: If you haven't made the Edge Function yet, use this SQL delete:
     // const { error } = await supabase.from('User').delete().eq('id', userId);
 
@@ -314,20 +324,20 @@ class ApiService {
   }
 
   // ... (deleteAttendance, addAttendance, _downloadCSV remain the same) ...
-  async deleteAttendance(attendanceId) {
+  async deleteAttendance(attendanceId: string): Promise<void> {
     const { error } = await supabase.from('Attendance').delete().eq('id', attendanceId);
     if (error) throw error;
   }
 
-  async addAttendance(userId, sessionId) {
+  async addAttendance(userId: string, sessionId: string): Promise<Attendance> {
     const { data, error } = await supabase.from('Attendance').insert({
       userId, sessionId, scannedAt: new Date().toISOString()
     }).select().single();
     if (error) throw error;
-    return data;
+    return data as Attendance;
   }
 
-  _downloadCSV(data, filename) {
+  _downloadCSV(data: any[], filename: string): void {
     if (!data || !data.length) return;
     const headers = ['Name', 'Username', 'Group', 'Scanned At'];
     const rows = data.map(row => [
