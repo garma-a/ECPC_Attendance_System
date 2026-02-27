@@ -2,33 +2,21 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '../../tests/utils';
 import Login from './Login';
 import userEvent from '@testing-library/user-event';
-import { useAuth } from '../context/AuthContext';
+import { useAppStore, loginStore } from '../store';
 
-// Mock the AuthContext so we can override the login function
-vi.mock('../context/AuthContext', async (importOriginal) => {
-  const actual: any = await importOriginal();
+vi.mock('../store', () => {
   return {
-    ...actual,
-    useAuth: vi.fn(),
-  };
-});
-
-// Mock the LanguageContext
-vi.mock('../context/LanguageContext', async (importOriginal) => {
-  const actual: any = await importOriginal();
-  return {
-    ...actual,
-    useLanguage: () => ({
-      language: 'en',
-      t: (key: string) => key,
-      toggleLanguage: vi.fn(),
-    }),
+    useAppStore: vi.fn(),
+    loginStore: vi.fn(),
   };
 });
 
 describe('Login Component', () => {
   it('renders login form properly', () => {
-    vi.mocked(useAuth).mockReturnValue({ login: vi.fn(), user: null, loading: false, logout: vi.fn(), checkSession: vi.fn() });
+    vi.mocked(useAppStore).mockImplementation((selector: any) => {
+      const state = { user: null, loading: false, t: (key: string) => key };
+      return selector(state);
+    });
 
     render(<Login />);
 
@@ -37,8 +25,11 @@ describe('Login Component', () => {
   });
 
   it('handles user input and submits login form', async () => {
-    const mockLogin = vi.fn().mockResolvedValue({});
-    vi.mocked(useAuth).mockReturnValue({ login: mockLogin, user: null, loading: false, logout: vi.fn(), checkSession: vi.fn() });
+    const mockLogin = vi.mocked(loginStore).mockResolvedValue({});
+    vi.mocked(useAppStore).mockImplementation((selector: any) => {
+      const state = { user: null, loading: false, t: (key: string) => key };
+      return selector(state);
+    });
 
     render(<Login />);
 

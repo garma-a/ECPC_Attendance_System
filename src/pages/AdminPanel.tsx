@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLanguage } from "../context/LanguageContext";
+import { useAppStore } from "../store";
 import api from "../services/api";
 import Layout from "../components/Layout";
 import { User, Attendance, Session } from "../types";
 
 export default function AdminPanel() {
-  const { t } = useLanguage();
+  const t = useAppStore((state) => state.t);
   const queryClient = useQueryClient();
 
   const [selectedTab, setSelectedTab] = useState("users");

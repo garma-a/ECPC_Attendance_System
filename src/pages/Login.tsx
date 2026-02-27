@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import { useAuth } from "../context/AuthContext";
-import { useLanguage } from "../context/LanguageContext";
+import { useAppStore, loginStore } from "../store";
 import LanguageToggle from "../components/LanguageToggle";
 import { RingLoader } from "react-spinners";
 
@@ -10,8 +9,7 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const { login } = useAuth();
-  const { t } = useLanguage();
+  const t = useAppStore((state) => state.t);
   const [loadedA, setLoadedA] = useState(false)
   const [loadedB, setLoadedB] = useState(false);
   const navigate = useNavigate();
@@ -19,7 +17,7 @@ export default function Login() {
   const loginMutation = useMutation({
     mutationFn: async () => {
       const emailToUse = username.includes('@') ? username : `${username}@system.local`;
-      return login(emailToUse, password);
+      return loginStore(emailToUse, password);
     },
     onSuccess: () => {
       navigate("/");

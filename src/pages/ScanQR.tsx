@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Html5Qrcode } from "html5-qrcode";
-import { useAuth } from "../context/AuthContext";
-import { useLanguage } from "../context/LanguageContext";
+import { useAppStore } from "../store";
 import api from "../services/api";
 import Layout from "../components/Layout";
 
 export default function ScanQR() {
-  const { user } = useAuth();
-  const { t, language } = useLanguage();
+  const user = useAppStore((state) => state.user);
+  const t = useAppStore((state) => state.t);
+  const language = useAppStore((state) => state.language);
   const [scanning, setScanning] = useState<boolean>(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string>("");

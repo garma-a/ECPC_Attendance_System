@@ -1,25 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '../../tests/utils';
 import InstructorDashboard from './InstructorDashboard';
-import { useAuth } from '../context/AuthContext';
+import { useAppStore } from '../store';
 
-vi.mock('../context/AuthContext', async (importOriginal) => {
-  const actual: any = await importOriginal();
+vi.mock('../store', () => {
   return {
-    ...actual,
-    useAuth: vi.fn(),
-  };
-});
-
-vi.mock('../context/LanguageContext', async (importOriginal) => {
-  const actual: any = await importOriginal();
-  return {
-    ...actual,
-    useLanguage: () => ({
-      language: 'en',
-      t: (key: string) => key,
-      toggleLanguage: vi.fn(),
-    }),
+    useAppStore: vi.fn(),
   };
 });
 
@@ -35,7 +21,14 @@ vi.mock('../services/api', () => {
 
 describe('InstructorDashboard Component', () => {
   it('renders instructor dashboard properly', () => {
-    vi.mocked(useAuth).mockReturnValue({ user: { id: '123', name: 'Test Instructor', role: 'instructor' } as any, login: vi.fn(), loading: false, logout: vi.fn(), isAuthenticated: true });
+    vi.mocked(useAppStore).mockImplementation((selector: any) => {
+      const state = { 
+        user: { id: '123', name: 'Test Instructor', role: 'instructor' } as any, 
+        loading: false, 
+        t: (key: string) => key 
+      };
+      return selector(state);
+    });
 
     render(<InstructorDashboard />);
 

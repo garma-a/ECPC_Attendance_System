@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../context/AuthContext";
-import { useLanguage } from "../context/LanguageContext";
+import { useAppStore } from "../store";
 import api from "../services/api";
 import Layout from "../components/Layout";
 import SessionCard from "../components/SessionCard";
@@ -9,8 +8,8 @@ import { QRCodeSVG } from "qrcode.react";
 import { Session, Attendance, QRToken } from "../types";
 
 export default function InstructorDashboard() {
-  const { user } = useAuth();
-  const { t } = useLanguage();
+  const user = useAppStore((state) => state.user);
+  const t = useAppStore((state) => state.t);
   const queryClient = useQueryClient();
 
   const [selectedSession, setSelectedSession] = useState<string | null>(null);

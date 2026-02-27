@@ -1,16 +1,7 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { StateCreator } from 'zustand';
+import { LanguageState } from './types';
 
-type LanguageContextType = {
-  language: string;
-  t: (key: string) => string;
-  toggleLanguage: () => void;
-};
-
-const LanguageContext = createContext<LanguageContextType | null>(null);
-
-type TranslationsMap = Record<string, Record<string, string>>;
-
-const translations: TranslationsMap = {
+const translations: Record<string, Record<string, string>> = {
   en: {
     // Common
     login: "Login",
@@ -150,38 +141,30 @@ const translations: TranslationsMap = {
   },
 };
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState(() => {
-    return localStorage.getItem("language") || "ar";
-  });
+const getDefaultLanguage = () => {
+  return localStorage.getItem("language") || "ar";
+}
 
-  useEffect(() => {
-    localStorage.setItem("language", language);
+export const createLanguageSlice: StateCreator<LanguageState, [], [], LanguageState> = (set, get) => ({
+  language: getDefaultLanguage(),
+  
+  setLanguage: (lang) => {
+    localStorage.setItem("language", lang);
     document.documentElement.setAttribute(
       "dir",
-      language === "ar" ? "rtl" : "ltr"
+      lang === "ar" ? "rtl" : "ltr"
     );
-  }, [language]);
-
-  const t = (key: string): string => {
-    return translations[language]?.[key] || key;
-  };
-
-  const toggleLanguage = (): void => {
-    setLanguage((prev) => (prev === "ar" ? "en" : "ar"));
-  };
-
-  return (
-    <LanguageContext.Provider value={{ language, t, toggleLanguage }}>
-      {children}
-    </LanguageContext.Provider>
-  );
-}
-
-export function useLanguage(): LanguageContextType {
-  const context = useContext(LanguageContext);
-  if (!context) {
-    throw new Error("useLanguage must be used within LanguageProvider");
+    set({ language: lang });
+  },
+  
+  toggleLanguage: () => {
+    const currentLang = get().language;
+    const newLang = currentLang === "ar" ? "en" : "ar";
+    get().setLanguage(newLang);
+  },
+  
+  t: (key) => {
+    const currentLang = get().language;
+    return translations[currentLang]?.[key] || key;
   }
-  return context;
-}
+});

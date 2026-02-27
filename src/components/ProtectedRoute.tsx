@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAppStore } from "../store";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -8,7 +8,8 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, allowedRoles = [] }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+  const user = useAppStore((state) => state.user);
+  const loading = useAppStore((state) => state.loading);
 
   if (loading) {
     return (

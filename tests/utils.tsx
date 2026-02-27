@@ -2,8 +2,7 @@ import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
-import { AuthProvider } from '../src/context/AuthContext';
-import { LanguageProvider } from '../src/context/LanguageContext';
+
 
 const queryClient = new QueryClient({
   defaultOptions: {

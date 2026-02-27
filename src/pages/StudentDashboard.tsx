@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "../context/AuthContext";
-import { useLanguage } from "../context/LanguageContext";
+import { useAppStore } from "../store";
 import api from "../services/api";
 import Layout from "../components/Layout";
 import {
@@ -15,8 +14,8 @@ import {
 } from "recharts";
 
 export default function StudentDashboard() {
-  const { user } = useAuth();
-  const { t } = useLanguage();
+  const user = useAppStore((state) => state.user);
+  const t = useAppStore((state) => state.t);
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ['stats', user?.id],

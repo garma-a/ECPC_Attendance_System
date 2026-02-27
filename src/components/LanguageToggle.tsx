@@ -1,7 +1,8 @@
-import { useLanguage } from "../context/LanguageContext";
+import { useAppStore } from "../store";
 
 export default function LanguageToggle() {
-  const { language, toggleLanguage } = useLanguage();
+  const language = useAppStore((state) => state.language);
+  const toggleLanguage = useAppStore((state) => state.toggleLanguage);
 
   return (
     <button
