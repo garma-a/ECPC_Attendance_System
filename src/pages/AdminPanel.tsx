@@ -24,10 +24,9 @@ export default function AdminPanel() {
   const [newPassword, setNewPassword] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
   const [newRole, setNewRole] = useState("student"); // Default role
-  const [loading, setLoading] = useState(false);
   // -------------------------------------
 
-  const { data: users = [], isLoading: loadingUsers } = useQuery<User[]>({
+  const { data: users = [] } = useQuery<User[]>({
     queryKey: ['users'],
     queryFn: () => api.getUsers(),
     enabled: selectedTab === 'users' || selectedTab === 'addUser',
@@ -42,13 +41,13 @@ export default function AdminPanel() {
     return matchesSearch && matchesGroup;
   });
 
-  const { data: attendances = [], isLoading: loadingAttendances } = useQuery<Attendance[]>({
+  const { data: attendances = [] } = useQuery<Attendance[]>({
     queryKey: ['allAttendance'],
     queryFn: () => api.getAllAttendance(),
     enabled: selectedTab === 'attendance',
   });
 
-  const { data: sessions = [], isLoading: loadingSessions } = useQuery<Session[]>({
+  const { data: sessions = [] } = useQuery<Session[]>({
     queryKey: ['sessions'],
     queryFn: () => api.getSessions(),
     enabled: selectedTab === 'sessions',
@@ -204,7 +203,8 @@ export default function AdminPanel() {
                 ))}
               </select>
             </div>
-          <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-2xl overflow-hidden">
+          {/* Desktop Table */}
+          <div className="hidden md:block bg-slate-800 border border-slate-700 rounded-lg shadow-2xl overflow-hidden">
             <table className="min-w-full divide-y divide-slate-700">
               <thead className="bg-slate-900">
                 <tr>
@@ -280,6 +280,50 @@ export default function AdminPanel() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            {filteredUsers.map((user) => (
+              <div key={user.id} className="bg-slate-800 border border-slate-700 rounded-lg p-4 space-y-3 shadow-lg">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-bold text-cyan-300">{user.name}</h3>
+                    <p className="text-sm text-slate-400">@{user.username}</p>
+                    <p className="text-xs text-slate-500 mt-1 font-mono break-all">{user.id}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase ${user.role === "admin"
+                        ? "bg-red-900 text-red-200 border border-red-700"
+                        : user.role === "instructor"
+                          ? "bg-blue-900 text-blue-200 border border-blue-700"
+                          : "bg-green-900 text-green-200 border border-green-700"
+                        }`}>
+                      {t(user.role)}
+                    </span>
+                    <span className="text-xs text-slate-400 border border-slate-600 px-2 py-0.5 rounded">{user.groupName || "N/A"}</span>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-3 border-t border-slate-700">
+                  <button 
+                    onClick={() => {
+                      setEditingUser(user);
+                      setEditFormData({
+                        name: user.name,
+                        username: user.username,
+                        groupName: user.groupName || ""
+                      });
+                    }}
+                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-cyan-300 text-sm font-semibold rounded-lg shadow"
+                  >
+                    Edit
+                  </button>
+                  <button onClick={() => handleDeleteUser(user.id)} className="px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 text-white text-sm font-semibold rounded-lg shadow">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
           </div>
         )}

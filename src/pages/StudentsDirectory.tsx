@@ -75,7 +75,8 @@ export default function StudentsDirectory() {
               </select>
             </div>
 
-            <div className="overflow-x-auto rounded-lg border border-slate-700">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-700">
               <table className="min-w-full divide-y divide-slate-700">
                 <thead className="bg-slate-900">
                   <tr>
@@ -110,12 +111,47 @@ export default function StudentsDirectory() {
                   ))}
                 </tbody>
               </table>
-              {filteredUsers.length === 0 && (
-                <div className="text-center py-8 text-slate-400">
-                  No students found matching your search.
-                </div>
-              )}
             </div>
+
+            {/* Mobile Cards */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+              {filteredUsers.map((u) => (
+                <div key={u.id} className="bg-slate-900 border border-slate-700 rounded-lg p-5 space-y-4 shadow-lg">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-xl font-bold text-cyan-400">{u.name}</h3>
+                      <p className="text-sm text-slate-300 mt-1">@{u.username}</p>
+                    </div>
+                    {u.groupName && (
+                      <span className="px-3 py-1 bg-slate-800 text-cyan-300 text-xs font-bold rounded-full border border-cyan-500/30 shrink-0">
+                        {u.groupName}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex justify-end pt-4 border-t border-slate-700/50">
+                    <button 
+                      onClick={() => {
+                        setEditingUser(u);
+                        setEditFormData({
+                          name: u.name,
+                          username: u.username,
+                          groupName: u.groupName || ""
+                        });
+                      }}
+                      className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-sm font-bold rounded-lg shadow-md border border-slate-600 transition-all duration-300 w-full sm:w-auto"
+                    >
+                      Edit Student
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {filteredUsers.length === 0 && (
+              <div className="text-center py-8 text-slate-400 bg-slate-900 rounded-lg border border-slate-700">
+                No students found matching your search.
+              </div>
+            )}
           </div>
         </div>
       </div>
