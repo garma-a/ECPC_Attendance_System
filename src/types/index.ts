@@ -73,3 +73,15 @@ export interface UserStats {
   weeklyBreakdown: WeeklyBreakdown[];
   recentAttendances: RecentAttendance[];
 }
+
+export interface Announcement {
+  id: string;
+  title: string;
+  message: string;
+  instructor_id: string;
+  target_group: string;
+  created_at: string;
+  instructor?: {
+    name: string;
+  };
+}

@@ -7,6 +7,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import ScanQR from "./pages/ScanQR";
 import InstructorDashboard from "./pages/InstructorDashboard";
 import AdminPanel from "./pages/AdminPanel";
+import Announcements from "./pages/Announcements";
 
 function DashboardRouter() {
   const user = useAppStore((state) => state.user);
@@ -58,6 +59,14 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <DashboardRouter />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/announcements"
+        element={
+          <ProtectedRoute>
+            <Announcements />
           </ProtectedRoute>
         }
       />

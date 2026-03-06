@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient';
-import { User, Session, Attendance, QRToken, UserStats, WeeklyBreakdown, RecentAttendance } from '../types';
+import { User, Session, Attendance, QRToken, UserStats, WeeklyBreakdown, RecentAttendance, Announcement } from '../types';
 
 class ApiService {
 
@@ -321,6 +321,47 @@ class ApiService {
 
     if (error) throw new Error(error.message);
     if (data?.error) throw new Error(data.error);
+  }
+
+  // --- Announcements ---
+
+  async getAnnouncements(targetGroup?: string): Promise<Announcement[]> {
+    let query = supabase
+      .from('Announcement')
+      .select('*, instructor:User!instructor_id(name)')
+      .order('created_at', { ascending: false });
+      
+    if (targetGroup && targetGroup !== 'all') {
+      query = query.in('target_group', ['all', targetGroup]);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data as Announcement[];
+  }
+
+  async createAnnouncement(title: string, message: string, target_group: string): Promise<Announcement> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    const { data, error } = await supabase
+      .from('Announcement')
+      .insert({
+        title,
+        message,
+        target_group,
+        instructor_id: user.id
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Announcement;
+  }
+  
+  async deleteAnnouncement(id: string): Promise<void> {
+    const { error } = await supabase.from('Announcement').delete().eq('id', id);
+    if (error) throw error;
   }
 
   // ... (deleteAttendance, addAttendance, _downloadCSV remain the same) ...
