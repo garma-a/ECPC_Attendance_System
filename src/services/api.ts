@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient';
-import { User, Session, Attendance, QRToken, UserStats, WeeklyBreakdown, RecentAttendance, Announcement } from '../types';
+import { User, Session, Attendance, QRToken, UserStats, WeeklyBreakdown, RecentAttendance, Announcement, Resource } from '../types';
 
 class ApiService {
 
@@ -373,6 +373,55 @@ class ApiService {
   
   async deleteAnnouncement(id: string): Promise<void> {
     const { error } = await supabase.from('Announcement').delete().eq('id', id);
+    if (error) throw error;
+  }
+
+  // --- Resources ---
+
+  async getResources(): Promise<Resource[]> {
+    const { data, error } = await supabase
+      .from('Resource')
+      .select('*, instructor:User!instructor_id(name)')
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    return data as Resource[];
+  }
+
+  async createResource(title: string, description: string | undefined, url: string | undefined, image_url: string | undefined): Promise<Resource> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    const { data, error } = await supabase
+      .from('Resource')
+      .insert({
+        title,
+        description,
+        url,
+        image_url,
+        instructor_id: user.id
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Resource;
+  }
+
+  async updateResource(id: string, updates: Partial<Resource>): Promise<Resource> {
+    const { data, error } = await supabase
+      .from('Resource')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Resource;
+  }
+
+  async deleteResource(id: string): Promise<void> {
+    const { error } = await supabase.from('Resource').delete().eq('id', id);
     if (error) throw error;
   }
 

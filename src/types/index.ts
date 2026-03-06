@@ -85,3 +85,16 @@ export interface Announcement {
     name: string;
   };
 }
+
+export interface Resource {
+  id: string;
+  title: string;
+  description?: string;
+  url?: string;
+  image_url?: string;
+  instructor_id: string;
+  created_at: string;
+  instructor?: {
+    name: string;
+  };
+}

@@ -24,8 +24,6 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
-}));
-
 describe('AdminPanel Component', () => {
   it('renders admin panel properly', () => {
     vi.mocked(useAppStore).mockImplementation((selector: any) => {

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAppStore } from "../store";
 import api from "../services/api";
 import Layout from "../components/Layout";
+import { Resource } from "../types";
 import {
   BarChart,
   Bar,
@@ -21,6 +22,11 @@ export default function StudentDashboard() {
     queryKey: ['stats', user?.id],
     queryFn: () => api.getUserStats(user!.id),
     enabled: !!user?.id,
+  });
+
+  const { data: resources = [] } = useQuery<Resource[]>({
+    queryKey: ['resources'],
+    queryFn: () => api.getResources(),
   });
 
   if (isLoading) {
@@ -143,6 +149,40 @@ export default function StudentDashboard() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        {/* Study Resources */}
+        <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-2xl p-6">
+          <h2 className="text-xl font-bold text-cyan-400 mb-4">
+            Study Resources
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {resources.length === 0 && (
+              <p className="text-slate-400 text-sm col-span-full">No resources available at the moment.</p>
+            )}
+            {resources.map((res) => (
+              <div key={res.id} className="bg-slate-900 border border-slate-700 rounded-lg p-4 flex flex-col hover:border-cyan-500/50 transition-all hover:shadow-lg hover:shadow-cyan-500/20">
+                {res.image_url && (
+                  <img src={res.image_url} alt={res.title} className="w-full h-32 object-cover rounded-md mb-3" />
+                )}
+                <h3 className="text-lg font-bold text-cyan-300 break-words">{res.title}</h3>
+                {res.description && <p className="text-sm text-slate-400 mt-2 flex-grow break-words">{res.description}</p>}
+                
+                {res.url && (
+                  <div className="mt-4">
+                    <a 
+                      href={res.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-block w-full text-center px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg text-sm"
+                    >
+                      Open Resource
+                    </a>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>

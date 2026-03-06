@@ -81,15 +81,36 @@ export default function Layout({ children }: { children: ReactNode }) {
                  </svg>
                 <span className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out"></span>
               </Link>
-              {/* {user.role === 'admin' && ( */}
-              {/*   <Link */}
-              {/*     to="/" */}
-              {/*     className="relative group px-2 sm:px-3 py-2 rounded-md text-xs sm:text-sm font-medium text-slate-300 hover:text-cyan-400 transition-colors" */}
-              {/*   > */}
-              {/*     <span>{t('adminPanel')}</span> */}
-              {/*     <span className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out"></span> */}
-              {/*   </Link> */}
-              {/* )} */}
+              
+              {(user.role === 'instructor' || user.role === 'admin') && (
+                <>
+                  <Link
+                    to="/students"
+                    className="relative group p-2 mx-1 sm:mx-2 rounded-full text-slate-300 hover:text-cyan-400 hover:bg-slate-800 transition-colors flex items-center justify-center"
+                    title="Students Directory"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out"></span>
+                  </Link>
+                  <Link
+                    to="/resources"
+                    className="relative group p-2 mx-1 sm:mx-2 rounded-full text-slate-300 hover:text-cyan-400 hover:bg-slate-800 transition-colors flex items-center justify-center"
+                    title="Study Resources"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                      <polyline points="2 17 12 22 22 17"></polyline>
+                      <polyline points="2 12 12 17 22 12"></polyline>
+                    </svg>
+                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out"></span>
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Right side of Navbar */}

@@ -8,6 +8,8 @@ import ScanQR from "./pages/ScanQR";
 import InstructorDashboard from "./pages/InstructorDashboard";
 import AdminPanel from "./pages/AdminPanel";
 import Announcements from "./pages/Announcements";
+import StudentsDirectory from "./pages/StudentsDirectory";
+import StudyResources from "./pages/StudyResources";
 
 function DashboardRouter() {
   const user = useAppStore((state) => state.user);
@@ -75,6 +77,22 @@ function AppContent() {
         element={
           <ProtectedRoute allowedRoles={["student"]}>
             <ScanQR />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/students"
+        element={
+          <ProtectedRoute allowedRoles={["instructor", "admin"]}>
+            <StudentsDirectory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/resources"
+        element={
+          <ProtectedRoute>
+            <StudyResources />
           </ProtectedRoute>
         }
       />
