@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient';
-import { User, Session, Attendance, QRToken, UserStats, WeeklyBreakdown, RecentAttendance, Announcement, Resource } from '../types';
+import { User, Session, Attendance, UserStats, WeeklyBreakdown, Announcement, Resource, AnnouncementComment } from '../types';
 
 class ApiService {
 
@@ -280,8 +280,6 @@ class ApiService {
   }
 
   _getWeekLabel(date: Date): string {
-    const month = date.toLocaleString('en-US', { month: 'short' });
-    const day = date.getDate();
     const dayOfWeek = date.getDay();
     const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     const monday = new Date(date);
@@ -306,9 +304,10 @@ class ApiService {
       .update(updates)
       .eq('id', userId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) throw new Error("Update failed: Missing permissions or user not found.");
     return data as User;
   }
 
@@ -376,6 +375,56 @@ class ApiService {
     if (error) throw error;
   }
 
+  // --- Announcement Comments ---
+
+  async getAnnouncementComments(announcementId: string): Promise<AnnouncementComment[]> {
+    const { data, error } = await supabase
+      .from('AnnouncementComment')
+      .select('*, user:User!user_id(name, username)')
+      .eq('announcement_id', announcementId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return data as AnnouncementComment[];
+  }
+
+  async createAnnouncementComment(announcementId: string, content: string, parentId: string | null = null): Promise<AnnouncementComment> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Not authenticated");
+
+    const { data, error } = await supabase
+      .from('AnnouncementComment')
+      .insert({
+        content,
+        announcement_id: announcementId,
+        user_id: user.id,
+        parent_id: parentId
+      })
+      .select('*, user:User!user_id(name, username)')
+      .single();
+
+    if (error) throw error;
+    return data as AnnouncementComment;
+  }
+
+  async updateAnnouncementComment(id: string, content: string): Promise<AnnouncementComment> {
+    const { data, error } = await supabase
+      .from('AnnouncementComment')
+      .update({ content })
+      .eq('id', id)
+      .select('*, user:User!user_id(name, username)')
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) throw new Error("Update failed: Missing permissions or comment not found.");
+    return data as AnnouncementComment;
+  }
+
+  async deleteAnnouncementComment(id: string): Promise<void> {
+    const { error } = await supabase.from('AnnouncementComment').delete().eq('id', id);
+    if (error) throw error;
+  }
+
   // --- Resources ---
 
   async getResources(): Promise<Resource[]> {
@@ -414,9 +463,10 @@ class ApiService {
       .update(updates)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) throw new Error("Update failed: Missing permissions or resource not found.");
     return data as Resource;
   }
 
