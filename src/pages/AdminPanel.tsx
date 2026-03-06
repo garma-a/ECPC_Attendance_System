@@ -139,8 +139,8 @@ export default function AdminPanel() {
       <div className="space-y-6">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{t("admin")}</h1>
 
-        {/* Tabs */}
-        <div className="flex space-x-4 rtl:space-x-reverse border-b border-slate-700">
+        {/* Tabs - Desktop (Hidden on mobile) */}
+        <div className="hidden md:flex space-x-4 rtl:space-x-reverse border-b border-slate-700">
           <button
             onClick={() => setSelectedTab("users")}
             className={`px-4 py-2 font-medium transition-colors ${selectedTab === "users"
@@ -168,7 +168,6 @@ export default function AdminPanel() {
           >
             {t("sessions")}
           </button>
-          {/* --- New Tab Button --- */}
           <button
             onClick={() => setSelectedTab("addUser")}
             className={`px-4 py-2 font-medium transition-colors ${selectedTab === "addUser"
@@ -178,7 +177,26 @@ export default function AdminPanel() {
           >
             {t("addUser")}
           </button>
-          {/* ---------------------- */}
+        </div>
+
+        {/* Tabs - Mobile Dropdown (Hidden on desktop) */}
+        <div className="md:hidden relative">
+          <select
+            value={selectedTab}
+            onChange={(e) => setSelectedTab(e.target.value)}
+            className="w-full appearance-none bg-slate-800 border border-slate-600 outline-none text-slate-200 font-semibold py-3 px-4 rounded-xl shadow-lg focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all cursor-pointer"
+          >
+            <option value="users">{t("users")}</option>
+            <option value="attendance">{t("attendanceRecords")}</option>
+            <option value="sessions">{t("sessions")}</option>
+            <option value="addUser">{t("addUser")}</option>
+          </select>
+          {/* Custom Dropdown Arrow */}
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-cyan-400 rtl:right-auto rtl:left-0">
+             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+             </svg>
+          </div>
         </div>
 
         {/* Users Tab */}
