@@ -12,6 +12,12 @@ export default function AdminPanel() {
   const [selectedTab, setSelectedTab] = useState("users");
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
 
+  // --- Search & Filter & Edit ---
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterGroup, setFilterGroup] = useState("all");
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<User>>({});
+
   // --- New State for Add User Form ---
   const [newName, setNewName] = useState("");
   const [newUsername, setNewUsername] = useState("");
@@ -24,7 +30,16 @@ export default function AdminPanel() {
   const { data: users = [], isLoading: loadingUsers } = useQuery<User[]>({
     queryKey: ['users'],
     queryFn: () => api.getUsers(),
-    enabled: selectedTab === 'users',
+    enabled: selectedTab === 'users' || selectedTab === 'addUser',
+  });
+
+  const availableGroups = Array.from(new Set(users.map(u => u.groupName).filter(Boolean))) as string[];
+
+  const filteredUsers = users.filter((u) => {
+    const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          u.username.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesGroup = filterGroup === "all" || u.groupName === filterGroup;
+    return matchesSearch && matchesGroup;
   });
 
   const { data: attendances = [], isLoading: loadingAttendances } = useQuery<Attendance[]>({
@@ -56,6 +71,18 @@ export default function AdminPanel() {
     },
     onError: (error: any) => {
       alert("Failed to delete: " + error.message);
+    }
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: (updates: Partial<User>) => api.updateUser(editingUser!.id, updates),
+    onSuccess: () => {
+      alert("User updated successfully!");
+      setEditingUser(null);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: any) => {
+      alert("Failed to update user: " + error.message);
     }
   });
 
@@ -99,6 +126,12 @@ export default function AdminPanel() {
       role: newRole as 'student' | 'instructor' | 'admin',
     };
     createUserMutation.mutate(userData);
+  };
+
+  const handleUpdateUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    updateUserMutation.mutate(editFormData);
   };
   // ---------------------------------------
 
@@ -151,6 +184,26 @@ export default function AdminPanel() {
 
         {/* Users Tab */}
         {selectedTab === "users" && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4 bg-slate-800 p-4 rounded-lg border border-slate-700">
+              <input
+                type="text"
+                placeholder="Search by name or username..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              />
+              <select
+                value={filterGroup}
+                onChange={(e) => setFilterGroup(e.target.value)}
+                className="bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              >
+                <option value="all">All Groups</option>
+                {availableGroups.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            </div>
           <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-2xl overflow-hidden">
             <table className="min-w-full divide-y divide-slate-700">
               <thead className="bg-slate-900">
@@ -171,12 +224,12 @@ export default function AdminPanel() {
                     {t("group")}
                   </th>
                   <th className="px-6 py-3 text-start text-xs font-medium text-cyan-400 uppercase tracking-wider">
-                    Delete
+                    Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-slate-800 divide-y divide-slate-700">
-                {users.map((user) => (
+                {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-slate-700 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-200">
                       {user.id}
@@ -204,15 +257,30 @@ export default function AdminPanel() {
                     </td>
 
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      <button onClick={() => handleDeleteUser(user.id)} className="px-3 sm:px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 text-white text-xs sm:text-sm font-semibold 
-                           rounded-lg shadow-lg hover:shadow-red-500/50
-                           hover:scale-105 active:scale-95 
-                           transition-all duration-300 ease-in-out">Delete</button>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
+                            setEditingUser(user);
+                            setEditFormData({
+                              name: user.name,
+                              username: user.username,
+                              groupName: user.groupName || ""
+                            });
+                          }}
+                          className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-cyan-300 text-xs font-semibold rounded-lg shadow transition-all duration-300 ease-in-out border border-slate-600 hover:border-cyan-500/50"
+                        >
+                          Edit
+                        </button>
+                        <button onClick={() => handleDeleteUser(user.id)} className="px-3 py-1.5 bg-gradient-to-r from-red-600 to-rose-600 text-white text-xs font-semibold rounded-lg shadow hover:shadow-red-500/50 hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out">
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
           </div>
         )}
 
@@ -542,6 +610,65 @@ export default function AdminPanel() {
         }
         {/* ---------------------- */}
       </div>
+
+      {/* Edit User Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 fade-in">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all scale-100">
+            <h3 className="text-2xl font-bold text-cyan-400 mb-6">Edit User</h3>
+            <form onSubmit={handleUpdateUser} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={editFormData.name || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Username</label>
+                <input
+                  type="text"
+                  value={editFormData.username || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, username: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Group Name</label>
+                <input
+                  type="text"
+                  value={editFormData.groupName || ""}
+                  onChange={(e) => setEditFormData({ ...editFormData, groupName: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                />
+              </div>
+              <div className="flex gap-3 justify-end mt-8">
+                <button
+                  type="button"
+                  onClick={() => setEditingUser(null)}
+                  className="px-5 py-2.5 bg-slate-700 text-slate-300 font-medium rounded-lg hover:bg-slate-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateUserMutation.isPending}
+                  className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-lg shadow-lg hover:shadow-cyan-500/25 transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {updateUserMutation.isPending && (
+                    <div className="h-4 w-4 border-2 border-slate-200 border-t-white rounded-full animate-spin"></div>
+                  )}
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

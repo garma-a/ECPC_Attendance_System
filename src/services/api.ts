@@ -300,6 +300,18 @@ class ApiService {
     return data as User[];
   }
 
+  async updateUser(userId: string, updates: Partial<User>): Promise<User> {
+    const { data, error } = await supabase
+      .from('User')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as User;
+  }
+
   async getAllAttendance(): Promise<Attendance[]> {
     const { data, error } = await supabase
       .from('Attendance')

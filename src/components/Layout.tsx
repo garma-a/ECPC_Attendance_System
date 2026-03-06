@@ -76,10 +76,9 @@ export default function Layout({ children }: { children: ReactNode }) {
                 title="Announcements"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-                </svg>
+                  <path d="M3 11l18-5v12L3 14v-3z"></path>
+                  <path d="M11.5 21a2.5 2.5 0 0 0 5-2v-3"></path>
+                 </svg>
                 <span className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out"></span>
               </Link>
               {/* {user.role === 'admin' && ( */}
