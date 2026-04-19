@@ -26,6 +26,13 @@ This project is implemented as a frontend-first architecture backed by Supabase 
 - Study resources management
 - Arabic/English support with RTL handling
 
+## Backend-Centric Highlights
+
+- Supabase-backed domain model for users, sessions, attendance, QR tokens, announcements, and resources
+- Edge Function workflows for admin-safe user lifecycle actions
+- role-aware data access patterns in service layer (`src/services/api.ts`)
+- token expiry and duplicate attendance safeguards in QR attendance flow
+
 ## Repository Structure
 
 ```text
@@ -137,6 +144,8 @@ This project includes two Edge Functions used by admin workflows:
 - `create-user` - creates auth user + profile row
 - `delete-user` - deletes user with role checks and cleanup
 
+Operational note: `delete-user` manually validates admin role and performs cleanup before auth deletion.
+
 Function source paths:
 
 - `supabase/functions/create-user/index.ts`
@@ -160,6 +169,12 @@ Tests are located in:
 - A production `vercel.json` is included for frontend deployment.
 - Ensure Supabase project policies and function secrets are configured before production rollout.
 - Use secure, project-specific Supabase keys and never expose service role keys in the frontend.
+
+## Future Improvements
+
+- Extract service-layer logic into smaller modules for easier testing.
+- Add end-to-end tests for QR scan and attendance persistence flows.
+- Add explicit API error catalog and troubleshooting matrix for operators.
 
 ## License
 
