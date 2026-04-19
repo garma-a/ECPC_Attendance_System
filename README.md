@@ -1,592 +1,166 @@
-# QR-Based Attendance System
+# ECPC Attendance System
 
-A complete web application for QR-based attendance tracking where instructors display QR codes in class and students scan them to register attendance.
+Role-based attendance platform for ECPC built with React, Vite, Supabase, and Edge Functions. Instructors generate rotating QR codes, students scan to register attendance, and admins manage users and records.
 
-## Features
+## Overview
 
-- **Authentication**: JWT-based auth with HTTP-only cookies
-- **QR Token System**: HMAC-SHA256 signed tokens with configurable expiry (default 5 minutes)
-- **Auto-rotating QR**: Instructor dashboard auto-generates new QR codes every 4 minutes
-- **Real-time Attendance**: Live attendance list with auto-refresh
-- **Student Dashboard**: View attendance stats, weekly breakdown chart, and recent attendance
-- **Instructor Dashboard**: Create sessions, display QR codes, view live attendance, export CSV
-- **Admin Panel**: Manage users, view all attendance records, correct attendance
-- **Duplicate Prevention**: Students cannot check-in twice for the same session
-- **Bilingual UI**: Full Arabic/English support with RTL layout
-- **ngrok Ready**: Easy configuration for public URL exposure
+This project is implemented as a frontend-first architecture backed by Supabase services (Auth, Postgres, and Edge Functions).
+
+- Frontend: React + Vite + TypeScript
+- Data/Auth: Supabase
+- State management: Zustand
+- Data fetching/cache: TanStack Query
+- Charts and reporting: Recharts
+- QR scanning and generation: `html5-qrcode`, `qrcode.react`
+
+## Core Features
+
+- Authentication with role-aware routing (`student`, `instructor`, `admin`)
+- Session creation and management for instructors
+- QR token generation and expiration flow
+- Attendance recording with duplicate protection
+- Student dashboard with attendance stats and weekly chart
+- Instructor live attendance and CSV export
+- Admin panel for users, attendance records, and sessions
+- Announcements with threaded comments/replies
+- Study resources management
+- Arabic/English support with RTL handling
+
+## Repository Structure
+
+```text
+.
+|-- src/
+|   |-- pages/                 # Role-based screens
+|   |-- services/api.ts        # Supabase data access layer
+|   |-- store/                 # Zustand slices
+|   |-- components/            # Shared UI
+|   `-- types/                 # App domain types
+|-- supabase/
+|   |-- config.toml
+|   `-- functions/
+|       |-- create-user/
+|       `-- delete-user/
+|-- tests/                     # Vitest setup helpers
+`-- scripts/                   # Utility and integration scripts
+```
+
+## Roles and Main Pages
+
+- Student
+  - Dashboard with attendance KPIs and weekly breakdown
+  - QR scan page
+  - Announcements and study resources
+- Instructor
+  - Session creation and QR display/rotation
+  - Live attendance table + CSV export
+  - Announcements and student directory
+- Admin
+  - User management (create/update/delete)
+  - Attendance record management
+  - Sessions overview
 
 ## Tech Stack
 
-### Backend
-
-- Node.js + Express
-- Prisma ORM + SQLite (PostgreSQL ready)
-- bcrypt for password hashing
-- JWT for authentication
-- QRCode library for QR generation
-- HMAC-SHA256 for token signing
-
-### Frontend
-
-- React + Vite
-- Tailwind CSS
-- React Router
-- html5-qrcode for camera scanning
-- Recharts for data visualization
+- React 18 + TypeScript
+- Vite 5
+- Supabase JS SDK
+- TanStack Query 5
+- Zustand 5
+- Tailwind CSS 3
+- Vitest + Testing Library
 
 ## Prerequisites
 
-- Node.js 18+ (recommended: Node.js 20)
-- npm or yarn
-- (Optional) ngrok for public URL exposure
+- Node.js 18+
+- npm
+- A Supabase project (for Auth, database, and Edge Functions)
 
-## Installation & Setup
+## Environment Variables
 
-### 1. Clone or Download the Repository
+Create `.env` in the project root (or copy from `.env.example`):
 
-```powershell
-cd "d:\Projects\Let's hope it works\ECPC Registration app"
+```env
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-### 2. Backend Setup
+The app will fail fast at startup if either variable is missing.
 
-```powershell
-# Navigate to backend
-cd backend
+## Local Development
 
-# Install dependencies
+### 1) Install dependencies
+
+```bash
 npm install
+```
 
-# Copy environment variables
-copy .env.example .env
+### 2) Configure environment
 
-# Edit .env file and set your secrets (optional for local dev)
-# notepad .env
+```bash
+cp .env.example .env
+```
 
-# Run Prisma migrations
-npx prisma migrate dev --name init
+Fill in your Supabase values.
 
-# Generate Prisma Client
-npx prisma generate
+### 3) Run dev server
 
-# Seed the database with demo accounts
-node prisma/seed.js
-
-# Start the backend server
+```bash
 npm run dev
 ```
 
-The backend will start on **http://localhost:3000**
+Open `http://localhost:5173`.
 
-### 3. Frontend Setup
+## Tunneling and Remote Device Testing
 
-Open a **new PowerShell window**:
+The Vite config includes optional Pinggy support for HMR over secure tunnels.
 
-```powershell
-# Navigate to frontend
-cd "d:\Projects\Let's hope it works\ECPC Registration app\frontend"
+Example:
 
-# Install dependencies
-npm install
-
-# Copy environment variables
-copy .env.example .env
-
-# Start the frontend dev server
-npm run dev
+```bash
+PINGGY=true npm run dev
 ```
 
-The frontend will start on **http://localhost:5173**
+This enables tunnel-friendly HMR settings in `vite.config.js`.
 
-### 4. Access the Application
+## Available Scripts
 
-Open your browser and go to: **http://localhost:5173**
+- `npm run dev` - start Vite dev server
+- `npm run build` - production build
+- `npm run preview` - preview production build
+- `npm run test` - run Vitest test suite
 
-#### Demo Accounts (all passwords: `password123`)
+## Supabase Edge Functions
 
-| Role       | Username    | Password    |
-| ---------- | ----------- | ----------- |
-| Instructor | instructor1 | password123 |
-| Student 1  | student1    | password123 |
-| Student 2  | student2    | password123 |
-| Admin      | admin1      | password123 |
+This project includes two Edge Functions used by admin workflows:
 
-## Using with ngrok (Public URL)
+- `create-user` - creates auth user + profile row
+- `delete-user` - deletes user with role checks and cleanup
 
-To allow students to scan QR codes from their phones and access the system remotely:
+Function source paths:
 
-### 1. Install ngrok
+- `supabase/functions/create-user/index.ts`
+- `supabase/functions/delete-user/index.ts`
 
-Download from: https://ngrok.com/download
+## Testing
 
-### 2. Expose Backend with ngrok
+Run tests with:
 
-In a **new PowerShell window**:
-
-```powershell
-# Expose backend on port 3000
-ngrok http 3000
+```bash
+npm run test
 ```
 
-You'll see output like:
+Tests are located in:
 
-```
-Forwarding   https://1234-xxxx-xxxx.ngrok.io -> http://localhost:3000
-```
+- `src/pages/*.test.tsx`
+- `src/store/store.test.ts`
 
-**Copy the HTTPS URL** (e.g., `https://1234-xxxx-xxxx.ngrok.io`)
+## Deployment Notes
 
-### 3. Update Backend Environment
-
-Edit `backend/.env`:
-
-```env
-PUBLIC_BACKEND_URL=https://1234-xxxx-xxxx.ngrok.io
-COOKIE_SECURE=true
-COOKIE_SAME_SITE=none
-```
-
-**Restart the backend server** (Ctrl+C and `npm run dev`)
-
-### 4. Update Frontend Environment (Optional)
-
-If students access the frontend through ngrok too, edit `frontend/.env`:
-
-```env
-VITE_API_URL=https://1234-xxxx-xxxx.ngrok.io
-```
-
-**Restart the frontend server** (Ctrl+C and `npm run dev`)
-
-### 5. Test the Flow
-
-1. **Instructor**: Login at http://localhost:5173 (or ngrok URL) as `instructor1`
-2. **Create a session** and click "Show QR"
-3. **Student**: Login on phone/another device as `student1`
-4. **Navigate to "Scan QR"** page
-5. **Point camera** at the QR code displayed by instructor
-6. **Attendance is recorded** automatically!
-
-The QR code contains a URL like:
-
-```
-https://1234-xxxx.ngrok.io/api/attendance/scan?token=<signed-token>
-```
-
-## API Endpoints
-
-### Authentication
-
-- `POST /api/auth/login` - Login user
-
-  ```json
-  {
-    "username": "student1",
-    "password": "password123"
-  }
-  ```
-
-  Response: Sets httpOnly cookie, returns user object
-
-- `POST /api/auth/logout` - Logout user
-
-- `GET /api/auth/me` - Get current user info
-
-### Sessions (Instructor/Admin)
-
-- `POST /api/sessions` - Create new session
-
-  ```json
-  {
-    "name": "Lecture 1: Introduction",
-    "courseName": "CS 101",
-    "date": "2025-10-19T10:00:00"
-  }
-  ```
-
-- `GET /api/sessions` - Get all sessions
-
-- `GET /api/sessions/:id` - Get session details with attendance
-
-- `GET /api/sessions/:id/qr` - Generate QR code for session
-  Response:
-
-  ```json
-  {
-    "success": true,
-    "token": "1:1729334400000:abcdef123456...",
-    "expiresAt": "2025-10-19T10:05:00",
-    "qrCode": "data:image/png;base64,...",
-    "expiresIn": 300
-  }
-  ```
-
-- `GET /api/sessions/:id/attendance?format=csv` - Export attendance as CSV
-
-### Attendance (Student)
-
-- `POST /api/attendance` - Record attendance
-
-  ```json
-  {
-    "token": "1:1729334400000:abcdef123456...",
-    "latitude": 24.7136,
-    "longitude": 46.6753
-  }
-  ```
-
-  Response:
-
-  ```json
-  {
-    "success": true,
-    "message": "Attendance recorded successfully",
-    "messageAr": "تم تسجيل حضورك بنجاح",
-    "attendance": {
-      "id": 1,
-      "sessionName": "Lecture 1",
-      "courseName": "CS 101",
-      "scannedAt": "2025-10-19T10:02:30"
-    }
-  }
-  ```
-
-- `GET /api/attendance/scan?token=<token>` - Direct scan endpoint (returns HTML page)
-
-### Users
-
-- `GET /api/users/:id/stats` - Get user attendance statistics
-  Response includes:
-  - Total sessions
-  - Attendance count
-  - Absence count
-  - Attendance rate
-  - Weekly breakdown
-  - Recent attendances
-
-### Admin
-
-- `GET /api/admin/users` - Get all users
-
-- `GET /api/admin/attendance?page=1&limit=50` - Get all attendance records (paginated)
-
-- `DELETE /api/admin/attendance/:id` - Delete attendance record
-
-- `POST /api/admin/attendance` - Manually add attendance
-  ```json
-  {
-    "userId": 2,
-    "sessionId": 1
-  }
-  ```
-
-## Testing with cURL
-
-### Login and Get Cookie
-
-```powershell
-# Login as student
-curl -X POST http://localhost:3000/api/auth/login `
-  -H "Content-Type: application/json" `
-  -d '{\"username\":\"student1\",\"password\":\"password123\"}' `
-  -c cookies.txt
-
-# Get current user
-curl http://localhost:3000/api/auth/me -b cookies.txt
-```
-
-### Record Attendance
-
-```powershell
-# First, get a valid token from instructor dashboard or generate one
-# Replace <token> with actual token from QR generation
-
-curl -X POST http://localhost:3000/api/attendance `
-  -H "Content-Type: application/json" `
-  -b cookies.txt `
-  -d '{\"token\":\"1:1729334400000:abcdef123456...\"}'
-```
-
-### With ngrok
-
-```powershell
-# Replace with your ngrok URL
-$ngrokUrl = "https://1234-xxxx.ngrok.io"
-
-# Login
-curl -X POST "$ngrokUrl/api/auth/login" `
-  -H "Content-Type: application/json" `
-  -d '{\"username\":\"student1\",\"password\":\"password123\"}' `
-  -c cookies.txt
-
-# Record attendance
-curl -X POST "$ngrokUrl/api/attendance" `
-  -H "Content-Type: application/json" `
-  -b cookies.txt `
-  -d '{\"token\":\"<valid-token>\"}'
-```
-
-## Running Tests
-
-```powershell
-cd backend
-npm test
-```
-
-Tests include:
-
-- QR token generation and validation
-- Token signature verification
-- Token expiry validation
-- Forged token rejection
-
-## Database Management
-
-### View Database with Prisma Studio
-
-```powershell
-cd backend
-npx prisma studio
-```
-
-Opens at http://localhost:5555
-
-### Reset Database
-
-```powershell
-cd backend
-# Delete database file
-Remove-Item dev.db
-
-# Run migrations
-npx prisma migrate dev --name init
-
-# Seed data
-node prisma/seed.js
-```
-
-### Switch to PostgreSQL
-
-1. Edit `backend/prisma/schema.prisma`:
-
-   ```prisma
-   datasource db {
-     provider = "postgresql"
-     url      = env("DATABASE_URL")
-   }
-   ```
-
-2. Edit `backend/.env`:
-
-   ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/attendance_db?schema=public"
-   ```
-
-3. Run migrations:
-   ```powershell
-   npx prisma migrate dev --name init
-   ```
-
-## Docker Deployment (Optional)
-
-### Using Docker Compose
-
-```powershell
-# Build and start all services
-docker-compose up --build
-
-# Stop services
-docker-compose down
-```
-
-Services will be available at:
-
-- Backend: http://localhost:3000
-- Frontend: http://localhost:5173
-
-## Project Structure
-
-```
-attendance-qr-system/
-├── backend/
-│   ├── prisma/
-│   │   ├── schema.prisma          # Database schema
-│   │   └── seed.js                # Seed script
-│   ├── src/
-│   │   ├── middleware/
-│   │   │   ├── auth.js            # Authentication middleware
-│   │   │   └── rateLimiter.js     # Rate limiting
-│   │   ├── routes/
-│   │   │   ├── auth.js            # Auth routes
-│   │   │   ├── sessions.js        # Session routes
-│   │   │   ├── attendance.js      # Attendance routes
-│   │   │   ├── users.js           # User routes
-│   │   │   └── admin.js           # Admin routes
-│   │   ├── services/
-│   │   │   ├── qrToken.js         # QR token generation/validation
-│   │   │   └── attendance.js      # Attendance logic
-│   │   ├── utils/
-│   │   │   ├── jwt.js             # JWT utilities
-│   │   │   └── logger.js          # Logger
-│   │   └── index.js               # Express server
-│   ├── tests/
-│   │   └── qrToken.test.js        # Token validation tests
-│   ├── .env.example
-│   ├── package.json
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Layout.jsx
-│   │   │   ├── ProtectedRoute.jsx
-│   │   │   └── LanguageToggle.jsx
-│   │   ├── pages/
-│   │   │   ├── Login.jsx
-│   │   │   ├── StudentDashboard.jsx
-│   │   │   ├── ScanQR.jsx
-│   │   │   ├── InstructorDashboard.jsx
-│   │   │   └── AdminPanel.jsx
-│   │   ├── services/
-│   │   │   └── api.js             # API service
-│   │   ├── context/
-│   │   │   ├── AuthContext.jsx
-│   │   │   └── LanguageContext.jsx
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css
-│   ├── .env.example
-│   ├── package.json
-│   ├── vite.config.js
-│   ├── tailwind.config.js
-│   └── Dockerfile
-├── docker-compose.yml
-└── README.md
-```
-
-## Security Considerations
-
-### Production Checklist
-
-1. **Change all secrets** in `.env`:
-
-   - `JWT_SECRET`: Use a strong random string (32+ characters)
-   - `QR_SECRET`: Use a different strong random string
-
-2. **Use HTTPS** in production:
-
-   - Set `COOKIE_SECURE=true`
-   - Set `COOKIE_SAME_SITE=none` or `strict`
-
-3. **Configure CORS** properly:
-
-   - Update `FRONTEND_URL` to your production domain
-   - Remove wildcard CORS in production
-
-4. **Use PostgreSQL** instead of SQLite for production
-
-5. **Add rate limiting** (already implemented for critical endpoints)
-
-6. **Keep QR expiry short** (5-10 minutes recommended)
-
-7. **Regular security audits**:
-   ```powershell
-   npm audit
-   npm audit fix
-   ```
-
-## Troubleshooting
-
-### Issue: Backend won't start
-
-**Solution**: Check if port 3000 is already in use
-
-```powershell
-# Find process using port 3000
-netstat -ano | findstr :3000
-
-# Kill the process (replace PID)
-taskkill /PID <PID> /F
-```
-
-### Issue: Frontend can't connect to backend
-
-**Solution**: Check CORS settings and make sure backend is running
-
-- Verify `VITE_API_URL` in `frontend/.env`
-- Check browser console for CORS errors
-
-### Issue: QR scanner not working
-
-**Solution**:
-
-- Use HTTPS (required for camera access)
-- Allow camera permissions in browser
-- Use ngrok for HTTPS testing locally
-
-### Issue: Cookies not working with ngrok
-
-**Solution**: Update backend `.env`:
-
-```env
-COOKIE_SECURE=true
-COOKIE_SAME_SITE=none
-```
-
-### Issue: "Attendance already recorded"
-
-This is expected - duplicate check-ins are prevented. To test again:
-
-1. Use Prisma Studio to delete the attendance record
-2. Or create a new session
-
-## Advanced Configuration
-
-### Custom QR Token Expiry
-
-Edit `backend/.env`:
-
-```env
-QR_TOKEN_EXPIRY=600  # 10 minutes in seconds
-```
-
-### Adjust QR Rotation Interval
-
-Edit `frontend/src/pages/InstructorDashboard.jsx` line ~66:
-
-```javascript
-// Refresh every 4 minutes (240000 ms)
-qrIntervalRef.current = setInterval(() => {
-  generateQR(sessionId);
-}, 4 * 60 * 1000);
-```
-
-### Custom JWT Expiry
-
-Edit `backend/src/utils/jwt.js`:
-
-```javascript
-{
-  expiresIn: "7d";
-} // Change to '1d', '12h', etc.
-```
-
-## Contributing
-
-Feel free to submit issues and enhancement requests!
+- A production `vercel.json` is included for frontend deployment.
+- Ensure Supabase project policies and function secrets are configured before production rollout.
+- Use secure, project-specific Supabase keys and never expose service role keys in the frontend.
 
 ## License
 
-MIT License
-
-## Support
-
-For questions or issues:
-
-1. Check this README thoroughly
-2. Review the code comments
-3. Check browser console and backend logs
-4. Test with provided demo accounts first
-
----
-
-**Happy Attendance Tracking! 📱✅**
+No license file is currently defined in this repository.
