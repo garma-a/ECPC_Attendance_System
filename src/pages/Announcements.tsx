@@ -18,13 +18,13 @@ export default function Announcements() {
   const [targetGroup, setTargetGroup] = useState("all");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableGroups, setAvailableGroups] = useState<string[]>([]);
-  
+
   // Form state for comments
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [isSubmittingComment, setIsSubmittingComment] = useState<string | null>(null);
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
-  
+
   // Edit comment state
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentText, setEditingCommentText] = useState("");
@@ -119,7 +119,7 @@ export default function Announcements() {
   const handleUpdateComment = async (e: React.FormEvent, commentId: string, announcementId: string) => {
     e.preventDefault();
     if (!editingCommentText.trim()) return;
-    
+
     try {
       await api.updateAnnouncementComment(commentId, editingCommentText);
       setEditingCommentId(null);
@@ -189,11 +189,11 @@ export default function Announcements() {
           ) : (
             announcements.slice().reverse().map((announcement) => {
               const isMine = user?.id === announcement.instructor_id;
-              
+
               return (
                 <div key={announcement.id} className={`flex flex-col max-w-[90%] sm:max-w-[75%] ${isMine ? 'self-end' : 'self-start'}`}>
                   <div className={`p-3 sm:p-4 shadow-md group relative ${isMine ? 'bg-slate-800/90 border border-cyan-800/60 shadow-[0_0_15px_-3px_rgba(6,182,212,0.1)] rounded-2xl rounded-tr-sm' : 'bg-slate-800/90 border border-slate-700 rounded-2xl rounded-tl-sm'}`}>
-                    
+
                     <div className="flex justify-between items-baseline mb-1.5 gap-4">
                       <span className={`text-xs sm:text-sm font-bold ${isMine ? 'text-cyan-300' : 'text-emerald-400'}`}>
                         {announcement.instructor?.name || 'Instructor'}
@@ -215,9 +215,9 @@ export default function Announcements() {
                         </svg>
                         {announcement.target_group === 'all' ? 'All Students' : announcement.target_group}
                       </span>
-                      
+
                       {(user?.role === "instructor" && isMine) || user?.role === "admin" ? (
-                        <button 
+                        <button
                           onClick={() => handleDelete(announcement.id)}
                           className="text-slate-400 hover:text-red-400 transition-colors hover:bg-red-400/10 p-1 rounded-md"
                           title="Delete Announcement"
@@ -231,20 +231,20 @@ export default function Announcements() {
 
                     {/* Comments Toggle Button */}
                     <div className="mt-2 text-right">
-                       <button 
-                         onClick={() => toggleComments(announcement.id)}
-                         className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-cyan-400 transition-colors bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 px-2.5 py-1 rounded-lg"
-                       >
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                         </svg>
-                         {comments[announcement.id]?.length || 0} {comments[announcement.id]?.length === 1 ? 'Comment' : 'Comments'}
-                         {expandedComments[announcement.id] ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
-                         ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                         )}
-                       </button>
+                      <button
+                        onClick={() => toggleComments(announcement.id)}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-cyan-400 transition-colors bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 px-2.5 py-1 rounded-lg"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        {comments[announcement.id]?.length || 0} {comments[announcement.id]?.length === 1 ? 'Comment' : 'Comments'}
+                        {expandedComments[announcement.id] ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        )}
+                      </button>
                     </div>
 
                     {/* Comments Section (Collapsible) */}
@@ -266,12 +266,12 @@ export default function Announcements() {
                                       {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                     {isMyComment && (
-                                      <button 
+                                      <button
                                         onClick={() => {
                                           setEditingCommentId(comment.id);
                                           setEditingCommentText(comment.content);
                                           setReplyingTo(null);
-                                        }} 
+                                        }}
                                         className="text-slate-500 hover:text-cyan-400 p-0.5"
                                         title="Edit comment"
                                       >
@@ -313,13 +313,13 @@ export default function Announcements() {
                                 ) : (
                                   <p className="text-sm text-slate-300 whitespace-pre-wrap">{comment.content}</p>
                                 )}
-                                
+
                                 {!isReply && editingCommentId !== comment.id && (
-                                  <button 
+                                  <button
                                     onClick={() => {
                                       setReplyingTo(replyingTo === comment.id ? null : comment.id);
                                       setEditingCommentId(null);
-                                    }} 
+                                    }}
                                     className="text-[10px] font-semibold text-slate-400 hover:text-cyan-400 self-start mt-1 transition-colors"
                                   >
                                     {replyingTo === comment.id ? 'Cancel Reply' : 'Reply'}
