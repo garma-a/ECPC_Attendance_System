@@ -44,12 +44,11 @@ serve(async (req) => {
     .from('User')
     .insert({
       id: authData.user.id,
+      email: email,
       username: username,
       name: name,
       role: role,
-      groupName: groupName || null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      groupName: groupName || null
     })
 
   if (dbError) {

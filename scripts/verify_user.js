@@ -1,29 +1,53 @@
+import { config } from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = 'https://onztthbetyryxnzxtajg.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uenR0aGJldHlyeXhuenh0YWpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MDIxMDgsImV4cCI6MjA4NjE3ODEwOH0.2KXZQYQZ-HQPIyRVN-0Hhp5U2PH0bhr9S3CXW-lx6pc';
+config()
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseUrl = process.env.VITE_SUPABASE_URL
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY
 
-async function findUser() {
-  const email = 'student@system.local';
-  const password = 'student';
-
-  console.log(`Attempting login for ${email}...`);
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    console.error("Login failed:", error.message);
-    return;
-  }
-
-  console.log("Login successful!");
-  console.log("User ID:", data.user.id);
-  console.log("This user is ready to be deleted via the new Edge Function.");
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY in .env')
+  process.exit(1)
 }
 
-findUser();
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+const usersToTest = [
+  { username: 'student', password: 'student' },
+  { username: 'instructor', password: 'instructor' },
+  { username: 'admin', password: 'admin' },
+]
+
+async function verifyLogins() {
+  console.log('Verifying logins for demo users...')
+  let hasFailure = false
+
+  for (const user of usersToTest) {
+    const email = `${user.username}@system.local`
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password: user.password,
+    })
+
+    if (error) {
+      console.error(`[failed] ${user.username} (${email}): ${error.message}`)
+      hasFailure = true
+    } else {
+      console.log(`[success] ${user.username} (ID: ${data.user.id})`)
+      
+      // Sign out to clear session for next login
+      await supabase.auth.signOut()
+    }
+  }
+
+  if (hasFailure) {
+    console.log('\nSome logins failed. Make sure the seed script ran successfully.')
+    process.exit(1)
+  } else {
+    console.log('\nAll logins verified successfully! You can now use these credentials in the app.')
+  }
+}
+
+verifyLogins()

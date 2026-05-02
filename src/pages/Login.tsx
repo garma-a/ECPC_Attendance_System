@@ -159,6 +159,31 @@ export default function Login() {
                 </div>
               )}
 
+              {/* Quick Login Buttons for Demo */}
+              <div className="flex flex-wrap gap-2 mb-6 justify-center">
+                <button
+                  type="button"
+                  onClick={() => { setUsername('student'); setPassword('student'); }}
+                  className="px-3 py-1.5 text-xs font-medium text-blue-100 bg-blue-900/50 border border-blue-500/30 rounded-md hover:bg-blue-800/80 transition-colors"
+                >
+                  Student Demo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setUsername('instructor'); setPassword('instructor'); }}
+                  className="px-3 py-1.5 text-xs font-medium text-green-100 bg-green-900/50 border border-green-500/30 rounded-md hover:bg-green-800/80 transition-colors"
+                >
+                  Instructor Demo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setUsername('admin'); setPassword('admin'); }}
+                  className="px-3 py-1.5 text-xs font-medium text-purple-100 bg-purple-900/50 border border-purple-500/30 rounded-md hover:bg-purple-800/80 transition-colors"
+                >
+                  Admin Demo
+                </button>
+              </div>
+
               <form onSubmit={handleSubmit} className="space-y-8">
                 <div className="relative">
                   <input
